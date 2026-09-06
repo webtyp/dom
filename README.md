@@ -1,9 +1,9 @@
-# tinywasm/dom
+# webtyp/dom
 <img src="docs/img/badges.svg">
 
 > **Ultra-minimal DOM & reactivity toolkit for Go (TinyGo WASM-optimized).**
 
-`tinywasm/dom` provides a type-safe, fine-grained reactive engine over the browser DOM for TinyGo/WASM. State lives in typed Signals; changing a signal patches only the bound DOM node — no Virtual DOM, no manual `Update()` calls, no re-renders.
+`webtyp/dom` provides a type-safe, fine-grained reactive engine over the browser DOM for TinyGo/WASM. State lives in typed Signals; changing a signal patches only the bound DOM node — no Virtual DOM, no manual `Update()` calls, no re-renders.
 
 ## Features
 
@@ -13,22 +13,22 @@
 - **Two-method contract**: `Render() *Element` (pure, once per mount) + optional `Init(ctx dom.Ctx)` (side effects, once ever).
 - **Keyed lists & conditional subtrees**: `BindChildren(SignalNodes)` + `Show(cond, content)`.
 - **No Virtual DOM**: Zero diffing; nodes are never replaced unless structure truly changes.
-- **TinyGo Optimized**: Zero stdlib; `tinywasm/fmt` for logs; slices over maps; `<500KB` WASM binaries.
+- **TinyGo Optimized**: Zero stdlib; `webtyp/fmt` for logs; slices over maps; `<500KB` WASM binaries.
 - **Isomorphic**: same `Render()` produces correct SSR HTML on backend and live WASM on frontend.
 
 ## Installation
 
 ```bash
-go get github.com/tinywasm/dom
+go get webtyp.com/dom
 ```
 
 ## Quick Start
 
 ```go
 import (
-    dom "github.com/tinywasm/dom"
-    "github.com/tinywasm/fmt"
-    "github.com/tinywasm/html"
+    dom "webtyp.com/dom"
+    "webtyp.com/fmt"
+    "webtyp.com/html"
 )
 
 type Counter struct {
@@ -136,7 +136,7 @@ unmount     → run OnCleanup + unsubscribe signals
 
 ## Mount Point
 
-Always `"app"`, never `"body"` — `Render("body", ...)` overwrites `innerHTML` and destroys the SVG sprite injected by `tinywasm/sitec`.
+Always `"app"`, never `"body"` — `Render("body", ...)` overwrites `innerHTML` and destroys the SVG sprite injected by `webtyp/sitec`.
 
 ## Dev Mode
 
@@ -151,9 +151,9 @@ When on:
 
 ## Related Packages
 
-- [tinywasm/html](https://github.com/tinywasm/html) — HTML element builders (no-arg: `Div()`, `Span()`, `Button()`…)
-- [tinywasm/svg](https://github.com/tinywasm/svg) — SVG builders + icon sprite
-- [tinywasm/image](https://github.com/tinywasm/image) — Image element builders
+- [webtyp/html](https://github.com/webtyp/html) — HTML element builders (no-arg: `Div()`, `Span()`, `Button()`…)
+- [webtyp/svg](https://github.com/webtyp/svg) — SVG builders + icon sprite
+- [webtyp/image](https://github.com/webtyp/image) — Image element builders
 
 ## Documentation
 

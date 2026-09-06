@@ -3,7 +3,7 @@ package dom
 import (
 	"testing"
 
-	"github.com/tinywasm/fmt"
+	"webtyp.com/fmt"
 )
 
 func TestElementSetAttr(t *testing.T) {

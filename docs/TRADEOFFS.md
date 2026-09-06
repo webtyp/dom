@@ -1,6 +1,6 @@
 # Trade-offs — reactividad de grano fino con signals tipados
 
-Esta es la arquitectura elegida para `tinywasm/dom`: el estado vive en **signals tipados**
+Esta es la arquitectura elegida para `webtyp/dom`: el estado vive en **signals tipados**
 (`SignalString`/`SignalBool`/`SignalNodes`, sin genéricos), y cada cambio parchea **solo** el nodo
 del DOM ligado a ese dato — sin re-renderizar el componente, sin Virtual DOM.
 

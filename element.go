@@ -1,7 +1,7 @@
 package dom
 
 import (
-	"github.com/tinywasm/fmt"
+	"webtyp.com/fmt"
 )
 
 // Element represents a DOM element in the fluent Element API.
@@ -46,7 +46,7 @@ type StateAttr interface {
 }
 
 // NewElement creates an Element with the given HTML tag.
-// Used by tinywasm/html, tinywasm/svg, tinywasm/image to build elements.
+// Used by webtyp/html, webtyp/svg, webtyp/image to build elements.
 func NewElement(tag string) *Element { return &Element{tag: tag} }
 
 // NoCloseTag marks the element as self-closing (no closing tag rendered).

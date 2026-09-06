@@ -100,8 +100,8 @@ func main() {
     cp := crudp.New(cfg)
     cp.RegisterHandler(&user.Handler{})
     
-    // Pass CRUDP as Sender to tinywasm/dom
-    dom := tinywasm/dom.New(log.Println, cp)
+    // Pass CRUDP as Sender to webtyp/dom
+    dom := webtyp/dom.New(log.Println, cp)
     
     // Render components
     dom.Render("app", myComponent)
@@ -110,11 +110,11 @@ func main() {
 
 ```go
 // user_front.go (handler)
-func (h *Handler) OnMount(dom tinywasm/dom.DOM) {
+func (h *Handler) OnMount(dom webtyp/dom.DOM) {
     btn, _ := dom.Get("save-btn")
-    btn.Click(func(e tinywasm/dom.Event) {
+    btn.Click(func(e webtyp/dom.Event) {
         user := User{Name: "John"}
-        dom.Send(tinywasm/dom.POST, h, user, func(resp []byte, err error) {
+        dom.Send(webtyp/dom.POST, h, user, func(resp []byte, err error) {
             if err != nil {
                 dom.Log("Error:", err)
                 return

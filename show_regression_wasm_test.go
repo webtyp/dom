@@ -7,7 +7,7 @@ import (
 )
 
 // TestShowSecondToggleSharedContent guards the fix for the panic reported in
-// tinywasm/layout docs/BUG_DOM.md ("element ... is already a child of another
+// webtyp/layout docs/BUG_DOM.md ("element ... is already a child of another
 // element"), which killed the app on the SECOND open of a Show whose render
 // callback closed over elements built outside it. Show no longer takes a
 // callback: the subtree is built and attached once, so re-attachment is

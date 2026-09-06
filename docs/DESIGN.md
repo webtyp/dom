@@ -1,6 +1,6 @@
-# `tinywasm/dom` Design: Signals & Fine-Grained Reactivity
+# `webtyp/dom` Design: Signals & Fine-Grained Reactivity
 
-This document records the architectural decisions for the `tinywasm/dom` reactive engine.
+This document records the architectural decisions for the `webtyp/dom` reactive engine.
 
 ## 1. Rationale: Why Signals?
 
@@ -21,7 +21,7 @@ The previous model used a coarse `Update()` method that re-rendered the entire c
 
 ## 2. Typed Signals, No Generics
 
-The ecosystem follows the `tinywasm/fmt` codec rule: *"cero any, cero map"*. To stay consistent and minimize WASM overhead, we use concrete typed signals (`SignalString`, `SignalBool`, `SignalNodes`) instead of generics.
+The ecosystem follows the `webtyp/fmt` codec rule: *"cero any, cero map"*. To stay consistent and minimize WASM overhead, we use concrete typed signals (`SignalString`, `SignalBool`, `SignalNodes`) instead of generics.
 
 The DOM boundary is primarily `string` (attributes, text content) and `bool` (classes, boolean attributes), so these types cover 99% of use cases.
 
@@ -36,7 +36,7 @@ We use an internal `currentTracker` to automatically discover dependencies durin
 
 ## 4. Default Escaping & Typed `TrustedHTML`
 
-To prevent Stored and Reflected XSS vulnerabilities across applications using `tinywasm/dom`, text nodes added via `.Text(string)` and reactive text bindings are escaped by default (`&`, `<`, `>`, `"`, `'`).
+To prevent Stored and Reflected XSS vulnerabilities across applications using `webtyp/dom`, text nodes added via `.Text(string)` and reactive text bindings are escaped by default (`&`, `<`, `>`, `"`, `'`).
 
 ### Alternative Considered: `SafeText()`
 

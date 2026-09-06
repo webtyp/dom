@@ -6,7 +6,7 @@ import (
 	"syscall/js"
 	"testing"
 
-	. "github.com/tinywasm/dom"
+	. "webtyp.com/dom"
 )
 
 // setupBindRoot prepares a clean #bind-root div in the page body.

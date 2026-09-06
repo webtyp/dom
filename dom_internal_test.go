@@ -6,7 +6,7 @@ import (
 	"syscall/js"
 	"testing"
 
-	"github.com/tinywasm/fmt"
+	"webtyp.com/fmt"
 )
 
 func TestInternalWasm(t *testing.T) {

@@ -1,6 +1,6 @@
 # Binding Model — Cómo funciona la reactividad
 
-Este documento explica el **modelo mental** de los signals y bindings de `tinywasm/dom`.
+Este documento explica el **modelo mental** de los signals y bindings de `webtyp/dom`.
 Léelo antes de la referencia de API.
 
 Usamos **un solo botón** como hilo conductor del núcleo, y al final una **lista de tareas**

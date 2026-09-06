@@ -1,7 +1,7 @@
 package dom
 
 import (
-	"github.com/tinywasm/fmt"
+	"webtyp.com/fmt"
 )
 
 type childRenderer func(Component) string

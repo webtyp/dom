@@ -1,17 +1,17 @@
-# Agent Guide — `tinywasm/dom`
+# Agent Guide — `webtyp/dom`
 
 Constraints and rules for agents adding or modifying functionality in this package.
 Read this before making any change.
 
 ---
 
-## Construction Harness — typed & explicit (the TinyWasm approach)
+## Construction Harness — typed & explicit (the WebTyp approach)
 
-`dom` is the **source** of TinyWasm's construction harness: the typed, explicit API is what keeps an
+`dom` is the **source** of WebTyp's construction harness: the typed, explicit API is what keeps an
 agent that doesn't know the library from building wrong code. Every API you add here must uphold it:
 
 - **Typed over `any`** — no generic slots. The builder is typed methods (`Text`/`Child`/`Attr`/
-  `Class`/`Set(...fmt.KeyValue)`), like `tinywasm/json`'s writer, **reusing `fmt` types** (no new
+  `Class`/`Set(...fmt.KeyValue)`), like `webtyp/json`'s writer, **reusing `fmt` types** (no new
   types); `Add(...any)` is removed. Reactive content goes ONLY through a signal binding
   (`BindText`/`Bind*`), which requires a `*Signal*`.
 - **Explicit names** — `Text` (static) vs `BindText` (reactive); reading a call states intent.
@@ -23,15 +23,15 @@ agent that doesn't know the library from building wrong code. Every API you add 
 - **Docs are minimal "how" instructions, not long skills** — if a rule must be *remembered*, close
   it with types, not prose.
 
-(Ecosystem rationale: `tinywasm/app/docs/CONSTRUCTION_HARNESS.md`.)
+(Ecosystem rationale: `webtyp/app/docs/CONSTRUCTION_HARNESS.md`.)
 
 ---
 
 ## Fundamental Constraint
 
-**`tinywasm/dom` is the only package in the tinywasm ecosystem that may import `syscall/js`.**
+**`webtyp/dom` is the only package in the webtyp ecosystem that may import `syscall/js`.**
 
-Any other package (`tinywasm/components/*`, apps, etc.) that needs browser APIs must call public functions from `dom`. Never add `syscall/js` imports outside this package.
+Any other package (`webtyp/components/*`, apps, etc.) that needs browser APIs must call public functions from `dom`. Never add `syscall/js` imports outside this package.
 
 ---
 
@@ -89,10 +89,10 @@ For quota management, maintain an in-memory counter (see `lsUsedBytes` in `domWa
 ## Zero Standard Library
 
 Never import `fmt`, `strings`, `errors`, or other stdlib packages.
-Use `github.com/tinywasm/fmt` for formatting and error construction:
+Use `webtyp.com/fmt` for formatting and error construction:
 
 ```go
-import . "github.com/tinywasm/fmt"
+import . "webtyp.com/fmt"
 
 return Err("localStorage unavailable")
 return Errf("value too large for key %s", key)
@@ -153,7 +153,7 @@ Checklist before opening a PR:
 Tests that exercise browser APIs run in a real browser via `gotest`:
 
 ```bash
-go install github.com/tinywasm/devflow/cmd/gotest@latest
+go install webtyp.com/devflow/cmd/gotest@latest
 gotest
 ```
 
@@ -192,7 +192,7 @@ bound DOM node — never re-render a whole element (no Virtual DOM).
 
 ## No Generics
 
-The ecosystem uses **zero** generic functions and follows the `tinywasm/fmt` codec rule
+The ecosystem uses **zero** generic functions and follows the `webtyp/fmt` codec rule
 (*"cero any, cero map"*) — typed methods per primitive. Signals are concrete typed cells, not
 `Signal[T]`. The DOM boundary is `string`/`bool`, so:
 

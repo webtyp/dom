@@ -3,7 +3,7 @@ package dom_test
 import (
 	"testing"
 
-	. "github.com/tinywasm/dom"
+	. "webtyp.com/dom"
 )
 
 type dummyComp struct {
@@ -197,7 +197,7 @@ func TestSSRIdIsStableAcrossRenders(t *testing.T) {
 // Before the fix, unifying the serializers made SSR also walk the signal's
 // current nodes IN ADDITION to the static children, double-emitting any
 // component that seeds static rows for SSR and wires BindChildren purely for
-// later client-side reactivity (exactly the shape tinywasm/components'
+// later client-side reactivity (exactly the shape webtyp/components'
 // datatable uses) — and panicking claimID when the duplicated rows carried
 // duplicate ids.
 func TestSSRIgnoresBindChildren(t *testing.T) {

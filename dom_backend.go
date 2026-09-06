@@ -2,7 +2,7 @@
 
 package dom
 
-import "github.com/tinywasm/fmt"
+import "webtyp.com/fmt"
 
 // domBackend is a stub implementation for non-WASM environments (e.g., SSR).
 type domBackend struct {

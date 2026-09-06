@@ -160,7 +160,7 @@ CRUDP passes `ShowMessage` to its config:
 
 ```go
 // main.go (wasm)
-dom := tinywasm/dom.New(log.Println, nil)
+dom := webtyp/dom.New(log.Println, nil)
 
 cfg := &crudp.Config{
     OnMessage: dom.ShowMessage,
@@ -168,7 +168,7 @@ cfg := &crudp.Config{
 cp := crudp.New(cfg)
 
 // Update dom with sender
-dom = tinywasm/dom.New(log.Println, cp)
+dom = webtyp/dom.New(log.Println, cp)
 ```
 
 Or CRUDP can call it directly if DOM implements MessageDisplay:
@@ -180,7 +180,7 @@ func (b *broker) onSSEMessage(data []byte) {
     b.codec.Decode(data, &result)
     
     // Show message if DOM supports it
-    if md, ok := b.dom.(tinywasm/dom.MessageDisplay); ok {
+    if md, ok := b.dom.(webtyp/dom.MessageDisplay); ok {
         md.ShowMessage(result.MessageType, result.Message)
     }
     

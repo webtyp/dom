@@ -115,7 +115,7 @@ type DOM interface {
 // user_front.go
 func (h *Handler) HandlerName() string { return "user" }
 
-// ValidateField - used by tinywasm/dom for real-time validation
+// ValidateField - used by webtyp/dom for real-time validation
 func (h *Handler) ValidateField(fieldName, value string) error {
     switch fieldName {
     case "name":
@@ -133,17 +133,17 @@ func (h *Handler) ValidateField(fieldName, value string) error {
     return nil
 }
 
-func (h *Handler) OnMount(dom tinywasm/dom.DOM) {
+func (h *Handler) OnMount(dom webtyp/dom.DOM) {
     form := dom.Form(nil) // Use defaults
     form.Bind("user-form", h)
     
-    form.OnValid(func(fields []tinywasm/dom.FormField) {
+    form.OnValid(func(fields []webtyp/dom.FormField) {
         // All fields valid, can enable submit button
         btn, _ := dom.Get("submit-btn")
         btn.RemoveAttribute("disabled")
     })
     
-    form.OnSubmit(func(fields []tinywasm/dom.FormField) {
+    form.OnSubmit(func(fields []webtyp/dom.FormField) {
         // Convert fields to struct
         user := User{}
         for _, f := range fields {
@@ -156,7 +156,7 @@ func (h *Handler) OnMount(dom tinywasm/dom.DOM) {
         }
         
         // Send to server
-        dom.Send(tinywasm/dom.POST, h, user, h.onCreateResponse)
+        dom.Send(webtyp/dom.POST, h, user, h.onCreateResponse)
     })
 }
 ```

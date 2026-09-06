@@ -1,12 +1,12 @@
-# `tinywasm/dom` Architecture & Builder API (LLM Context)
+# `webtyp/dom` Architecture & Builder API (LLM Context)
 
-`tinywasm/dom` is a minimalist, dependency-free wrapper over the browser DOM, optimized for `TinyGo/WASM`. It provides a Go-native, type-safe API for building UIs without exposing `syscall/js`.
+`webtyp/dom` is a minimalist, dependency-free wrapper over the browser DOM, optimized for `TinyGo/WASM`. It provides a Go-native, type-safe API for building UIs without exposing `syscall/js`.
 
 ## 1. Core Principles & Philosophy
 - **Isomorphic Core**: Same structs compile for server (`!wasm`) and client (`wasm`).
 - **No Virtual DOM**: Fine-grained reactivity via typed Signals (`SignalString`/`SignalBool`/`SignalNodes`). Signal changes patch only the bound DOM node — O(1), no diffing, no manual `Update()` calls.
-- **DOM-Only Layer**: Provides the `Element` struct, lifecycle interfaces, and direct DOM manipulation. HTML element builders live in `tinywasm/html`, SVGs in `tinywasm/svg`, and images in `tinywasm/image`.
-- **Zero StdLib**: Uses `github.com/tinywasm/fmt` instead of `fmt`, `strings`, `errors` to reduce WASM size.
+- **DOM-Only Layer**: Provides the `Element` struct, lifecycle interfaces, and direct DOM manipulation. HTML element builders live in `webtyp/html`, SVGs in `webtyp/svg`, and images in `webtyp/image`.
+- **Zero StdLib**: Uses `webtyp.com/fmt` instead of `fmt`, `strings`, `errors` to reduce WASM size.
 - **Slices over Maps**: Attributes and events use `[]fmt.KeyValue` instead of `map[string]string` because maps are extremely heavy in TinyGo.
 
 ## 2. API Overview
@@ -20,9 +20,9 @@ There are three primary layers/interfaces:
 
 `Render(parentID, comp)` sets `parent.innerHTML = html`, replacing ALL existing children of the
 target element. Using `"body"` as the mount point **destroys the SVG sprite** injected inline by
-`tinywasm/sitec`, breaking all `<use href="#icon-id">` references.
+`webtyp/sitec`, breaking all `<use href="#icon-id">` references.
 
-The `tinywasm/sitec` HTML template already injects `<div id="app"></div>` before the `<script>`
+The `webtyp/sitec` HTML template already injects `<div id="app"></div>` before the `<script>`
 tag. Always mount the root component there:
 
 ```go
@@ -36,16 +36,16 @@ Render("body", &App{})
 ### Package Boundaries
 | Concern | Package |
 |---|---|
-| HTML element builders | `tinywasm/html` |
-| SVG builders + sprite | `tinywasm/svg` |
-| Image builders | `tinywasm/image` |
-| DOM manipulation, Element type, interfaces | `tinywasm/dom` (this package) |
+| HTML element builders | `webtyp/html` |
+| SVG builders + sprite | `webtyp/svg` |
+| Image builders | `webtyp/image` |
+| DOM manipulation, Element type, interfaces | `webtyp/dom` (this package) |
 
 Elements are constructed declaratively using builders from sibling packages:
 ```go
 import (
-    . "github.com/tinywasm/html"
-    . "github.com/tinywasm/dom"
+    . "webtyp.com/html"
+    . "webtyp.com/dom"
 )
 
 Div(
@@ -164,7 +164,7 @@ Bindings link a `Signal` to a DOM property. When the signal's value changes, the
 
 ## 5. Void Elements
 The library handles self-closing tags correctly for:
-- `Input(type)`, `Img(src, alt)`, `Br()`, `Hr()` (when using builders from `tinywasm/html` or `tinywasm/image`).
+- `Input(type)`, `Img(src, alt)`, `Br()`, `Hr()` (when using builders from `webtyp/html` or `webtyp/image`).
 These return elements with the `void` flag set, preventing the rendering of a closing tag.
 
 ## 6. Build Split Strategy
@@ -204,7 +204,7 @@ On the backend (`!wasm`), these are no-ops and return `""`, ensuring SSR safety 
 package dom
 
 import (
-	"github.com/tinywasm/css"
+	"webtyp.com/css"
 	_ "embed"
 )
 
@@ -218,9 +218,9 @@ func RootCSS() *css.Stylesheet { return css.New(css.Raw(rootCSS)) }
 
 ### Override
 
-`dom` does not import `sitec`. The contract is the `RootCSSProvider` interface and the free function `RootCSS`. `tinywasm/sitec` discovers it via AST extraction during `LoadSSRModules()` and routes the result to the `open` slot of `<head>`.
+`dom` does not import `sitec`. The contract is the `RootCSSProvider` interface and the free function `RootCSS`. `webtyp/sitec` discovers it via AST extraction during `LoadSSRModules()` and routes the result to the `open` slot of `<head>`.
 
-Apps override the default by exposing their own `RootCSS()` from the project root's `ssr.go`. The single-override rule lives in `sitec` (root project wins, dom is fallback, third-party modules are ignored with a warning). See [`sitec/docs/ASSETMIN_SSR.md`](https://github.com/tinywasm/sitec/blob/main/docs/ASSETMIN_SSR.md).
+Apps override the default by exposing their own `RootCSS()` from the project root's `ssr.go`. The single-override rule lives in `sitec` (root project wins, dom is fallback, third-party modules are ignored with a warning). See [`sitec/docs/ASSETMIN_SSR.md`](https://github.com/webtyp/sitec/blob/main/docs/ASSETMIN_SSR.md).
 
 ### Distinction from `CSSProvider`
 

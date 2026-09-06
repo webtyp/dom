@@ -5,7 +5,7 @@ package dom_test
 import (
 	"testing"
 
-	. "github.com/tinywasm/dom"
+	. "webtyp.com/dom"
 )
 
 func TestDocumentAttr_Basic(t *testing.T) {

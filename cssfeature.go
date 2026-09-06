@@ -21,11 +21,11 @@ var supportsLightDarkCache *bool
 // SYNTAX; Safari 17.4 is a confirmed case of a browser that recognizes
 // light-dark() but does not correctly resolve it — a syntax-only check
 // would report "supported" on exactly the browser this function exists to
-// catch. See github.com/tinywasm/css's Token.EnhancedVar doc comment for
+// catch. See webtyp.com/css's Token.EnhancedVar doc comment for
 // the wider legacy-fallback investigation this came out of; a browser this
 // reports false for is the same population that relies on that fallback,
 // which is why this exists — a component whose only effect is toggling
-// light-dark()-driven color (github.com/tinywasm/components/themetoggle)
+// light-dark()-driven color (webtyp.com/components/themetoggle)
 // has nothing to do on such a browser and should not render a control that
 // looks broken when pressed.
 //

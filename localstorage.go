@@ -2,7 +2,7 @@
 
 package dom
 
-import . "github.com/tinywasm/fmt"
+import . "webtyp.com/fmt"
 
 const lsMaxBytes = 4 * 1024 * 1024 // presupuesto total (bytes UTF-16 estimados; cuota típica 5MB)
 const lsMaxValue = 64 * 1024       // límite por valor individual — O(1) sin llamada JS

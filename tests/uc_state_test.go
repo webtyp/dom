@@ -5,7 +5,7 @@ package dom_test
 import (
 	"testing"
 
-	. "github.com/tinywasm/dom"
+	. "webtyp.com/dom"
 )
 
 // fakeState stands in for widget.State in the consumer-shaped test: dom must

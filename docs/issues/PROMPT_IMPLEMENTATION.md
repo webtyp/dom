@@ -8,13 +8,13 @@ You are implementing CRUDP integration features for TinyDOM, a DOM manipulation 
 
 - **TinyGo compatibility:** No maps in hot paths, minimal allocations
 - **Build tags:** `//go:build wasm` for frontend, `//go:build !wasm` for backend
-- **Error handling:** Use `github.com/tinywasm/fmt` (Err, Errf) - already imported
+- **Error handling:** Use `webtyp.com/fmt` (Err, Errf) - already imported
 - **Existing patterns:** Follow existing code style and patterns in element.go, dom.go
 
 ## Project Structure (Current + New Files)
 
 ```
-tinywasm/dom/
+webtyp/dom/
 ├── dom.go              # Core DOM shared code
 ├── dom_frontend.go     # WASM implementation (//go:build wasm)
 ├── dom_backend.go      # Server-side stubs (//go:build !wasm)
@@ -23,7 +23,7 @@ tinywasm/dom/
 ├── event_wasm.go       # Event handling WASM
 ├── component_frontend.go
 ├── component_backend.go
-├── tinywasm/dom.go          # Package entry
+├── webtyp/dom.go          # Package entry
 ├── go.mod              # Dependencies (tinystring v0.12.0)
 │
 │   # NEW FILES TO CREATE:
@@ -52,7 +52,7 @@ Complete each task fully (code + tests) before moving to the next.
 **File:** `http_constants.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 // HTTP methods (string constants for fetchgo)
 const (
@@ -108,7 +108,7 @@ func ActionToMethod(action byte) string {
 **File:** `sender.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 // SendRequest contains data for HTTP request
 type SendRequest struct {
@@ -127,7 +127,7 @@ type SendResponse struct {
 }
 
 // Sender interface for HTTP communication
-// Implemented by tinywasm/dom (frontend) and injected into CRUDP
+// Implemented by webtyp/dom (frontend) and injected into CRUDP
 type Sender interface {
     // Send executes an HTTP request and returns the response
     Send(req SendRequest) SendResponse
@@ -160,10 +160,10 @@ type EventSource interface {
 ```go
 //go:build wasm
 
-package tinywasm/dom
+package webtyp/dom
 
 import (
-    "github.com/tinywasm/fetch"
+    "webtyp.com/fetch"
 )
 
 // domSender implements Sender interface using fetchgo
@@ -215,9 +215,9 @@ func (s *domSender) SendAsync(req SendRequest, callback func(SendResponse)) {
 ```go
 //go:build !wasm
 
-package tinywasm/dom
+package webtyp/dom
 
-import "github.com/tinywasm/fmt"
+import "webtyp.com/fmt"
 
 // domSender stub for server-side (HTTP requests not needed on backend)
 type domSender struct{}
@@ -250,7 +250,7 @@ func (s *domSender) SendAsync(req SendRequest, callback func(SendResponse)) {
 **File:** `sender_test.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 import "testing"
 
@@ -308,9 +308,9 @@ func TestSendRequest(t *testing.T) {
 **File:** `validation.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
-import "github.com/tinywasm/fmt"
+import "webtyp.com/fmt"
 
 // FieldError represents a single field validation error
 type FieldError struct {
@@ -377,7 +377,7 @@ func (v *FormValidator) Clear() {
 ```go
 //go:build wasm
 
-package tinywasm/dom
+package webtyp/dom
 
 import (
     "syscall/js"
@@ -502,12 +502,12 @@ func (e *Element) ClearAllErrors() {
 **File:** `validation_test.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 import (
     "testing"
     
-    "github.com/tinywasm/fmt"
+    "webtyp.com/fmt"
 )
 
 type testValidator struct{}
@@ -598,7 +598,7 @@ func TestFormValidator_Clear(t *testing.T) {
 **File:** `debounce.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 // DebounceConfig configures debounce behavior
 type DebounceConfig struct {
@@ -656,7 +656,7 @@ func SubmitDebounce() DebounceConfig {
 ```go
 //go:build wasm
 
-package tinywasm/dom
+package webtyp/dom
 
 import (
     "syscall/js"
@@ -772,7 +772,7 @@ func (e *Element) OnSubmitDebounced(config DebounceConfig, handler func()) {
 **File:** `debounce_test.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 import "testing"
 
@@ -826,7 +826,7 @@ func TestDebounceConfig_Values(t *testing.T) {
 **File:** `message.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 // Message types align with tinystring.MessageType values:
 // 0=Normal, 1=Info, 2=Error, 3=Warning, 4=Success
@@ -885,7 +885,7 @@ func MessageTypeClass(msgType uint8) string {
 ```go
 //go:build wasm
 
-package tinywasm/dom
+package webtyp/dom
 
 import (
     "syscall/js"
@@ -980,7 +980,7 @@ func (md *MessageDisplay) Clear() {
 ```go
 //go:build !wasm
 
-package tinywasm/dom
+package webtyp/dom
 
 // MessageDisplay stub for backend
 type MessageDisplay struct{}
@@ -1003,7 +1003,7 @@ func (md *MessageDisplay) Clear()                   {}
 **File:** `message_test.go` (create new)
 
 ```go
-package tinywasm/dom
+package webtyp/dom
 
 import "testing"
 
@@ -1078,7 +1078,7 @@ func TestMessageConstants(t *testing.T) {
 - [ ] WASM build works: `GOOS=js GOARCH=wasm go build ./...`
 - [ ] TinyGo build works: `tinygo build -target=wasm ./...`
 - [ ] Sender interface compatible with fetchgo
-- [ ] HTTP constants work for both tinywasm/dom and CRUDP
+- [ ] HTTP constants work for both webtyp/dom and CRUDP
 - [ ] Form validation is reusable with CRUDP handlers
 - [ ] Debounce configs are sensible defaults
 - [ ] Message display supports all MessageType values
@@ -1088,9 +1088,9 @@ func TestMessageConstants(t *testing.T) {
 
 ## Notes for LLM
 
-1. **Import tinystring correctly (tinywasm/dom style):**
+1. **Import tinystring correctly (webtyp/dom style):**
    ```go
-   import "github.com/tinywasm/fmt"
+   import "webtyp.com/fmt"
    // Then use: tinystring.Err(), tinystring.Errf()
    ```
    

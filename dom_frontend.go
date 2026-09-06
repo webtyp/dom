@@ -5,7 +5,7 @@ package dom
 import (
 	"syscall/js"
 
-	"github.com/tinywasm/fmt"
+	"webtyp.com/fmt"
 )
 
 // domWasm is the WASM implementation of the DOM interface.
@@ -119,7 +119,7 @@ func (d *domWasm) Get(id string) (Reference, bool) {
 	}
 
 	if val.IsNull() || val.IsUndefined() {
-		// d.Log("tinywasm/dom: element with id", id, "not found")
+		// d.Log("webtyp/dom: element with id", id, "not found")
 		return nil, false
 	}
 
@@ -250,14 +250,14 @@ func (d *domWasm) initComponent(c Component) {
 // update re-renders the component and replaces it in the DOM.
 func (d *domWasm) update(id string) {
 	if d.document.IsNull() || d.document.IsUndefined() {
-		d.Log("tinywasm/dom: document not found in update")
+		d.Log("webtyp/dom: document not found in update")
 		return
 	}
 
 	for _, uid := range d.updating {
 		if uid == id {
 			if d.devMode {
-				d.Log("tinywasm/dom: re-entrant update on", id, "ignored")
+				d.Log("webtyp/dom: re-entrant update on", id, "ignored")
 			}
 			return
 		}
@@ -307,7 +307,7 @@ func (d *domWasm) update(id string) {
 	elRaw := d.document.Call("getElementById", id)
 	if elRaw.IsNull() || elRaw.IsUndefined() {
 		if d.devMode {
-			d.Log("tinywasm/dom: component element not found during update:", id, "(this usually means the component root element has no ID)")
+			d.Log("webtyp/dom: component element not found during update:", id, "(this usually means the component root element has no ID)")
 		}
 		// Remove from updating before returning
 		for i, uid := range d.updating {
@@ -461,7 +461,7 @@ func (d *domWasm) unmount(component Component) {
 func (d *domWasm) renderToHTML(el *Element, comps *[]Component, ownerID string) string {
 	if el == nil {
 		if d.devMode {
-			d.Log("tinywasm/dom: nil Element encountered during renderToHTML (pointer-embedded Element mistake?)")
+			d.Log("webtyp/dom: nil Element encountered during renderToHTML (pointer-embedded Element mistake?)")
 		}
 		return ""
 	}
@@ -469,7 +469,7 @@ func (d *domWasm) renderToHTML(el *Element, comps *[]Component, ownerID string) 
 	renderChild := func(v Component) string {
 		if v == nil {
 			if d.devMode {
-				d.Log("tinywasm/dom: nil Component encountered (pointer-embedded Element mistake?)")
+				d.Log("webtyp/dom: nil Component encountered (pointer-embedded Element mistake?)")
 			}
 			return ""
 		}
@@ -969,7 +969,7 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 			tagName := ref.(*elementWasm).val.Get("tagName").String()
 			if tagName != "INPUT" && tagName != "TEXTAREA" {
 				if d.devMode {
-					d.Log("tinywasm/dom: Bind used on non-input element:", tagName)
+					d.Log("webtyp/dom: Bind used on non-input element:", tagName)
 				}
 			}
 
@@ -1090,7 +1090,7 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 		keys := make([]string, 0, len(newNodes))
 		for _, n := range newNodes {
 			if n.key == "" && n.id == "" {
-				d.Log("tinywasm/dom: row in BindChildren has no key/id (volatile identity)")
+				d.Log("webtyp/dom: row in BindChildren has no key/id (volatile identity)")
 			}
 			key := n.key
 			if key == "" {
@@ -1098,7 +1098,7 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 			}
 			for _, existingKey := range keys {
 				if key != "" && existingKey == key {
-					d.Log("tinywasm/dom: duplicate key in BindChildren:", key)
+					d.Log("webtyp/dom: duplicate key in BindChildren:", key)
 				}
 			}
 			keys = append(keys, key)
