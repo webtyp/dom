@@ -68,8 +68,16 @@ func TestRef_TwoInstances_DoNotCollide(t *testing.T) {
 		t.Fatalf("expected both Ref() calls to succeed, got ok1=%v, ok2=%v", ok1, ok2)
 	}
 
-	if ref1 == ref2 {
-		t.Fatalf("expected distinct references for two instances, got same reference %v", ref1)
+	// Compare the ids dom assigned, not the Reference values: Get allocates a
+	// fresh wrapper per call, so `ref1 == ref2` would be false even if both
+	// pointed at the SAME node — a vacuous assertion. The ids are what must
+	// differ for the two instances not to collide.
+	id1, id2 := ref1.GetAttr("id"), ref2.GetAttr("id")
+	if id1 == "" || id2 == "" {
+		t.Fatalf("both rows must carry a dom-assigned id, got %q and %q", id1, id2)
+	}
+	if id1 == id2 {
+		t.Fatalf("two instances collided on id %q — the whole point of Ref()", id1)
 	}
 
 	ref1.SetText("updated-1")

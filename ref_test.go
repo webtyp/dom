@@ -3,6 +3,7 @@
 package dom
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -21,7 +22,7 @@ func TestSSR_KeyEmitsNoID(t *testing.T) {
 	el := NewElement("div").Key("k")
 
 	html1 := el.String()
-	if containsSubstring(html1, "id=") {
+	if strings.Contains(html1, "id=") {
 		t.Errorf("expected SSR html to contain no id attribute, got %q", html1)
 	}
 
@@ -29,13 +30,4 @@ func TestSSR_KeyEmitsNoID(t *testing.T) {
 	if html1 != html2 {
 		t.Errorf("expected serializing same element twice to be byte-identical, got %q vs %q", html1, html2)
 	}
-}
-
-func containsSubstring(s, substr string) bool {
-	for i := 0; i+len(substr) <= len(s); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

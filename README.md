@@ -82,12 +82,15 @@ func (c *RowComp) Render() *dom.Element {
     return html.Div().Child(c.row)
 }
 
-func (c *RowComp) OnUpdate() {
+func (c *RowComp) Mounted() {
     if row, ok := c.row.Ref(); ok {
         row.SetText("updated")
     }
 }
 ```
+
+`Ref()` answers `false` until the element has been rendered, so call it from
+`Mounted()` or from an event handler — never from `Render()` itself.
 
 ## Signals
 

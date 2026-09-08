@@ -131,28 +131,16 @@ On every re-render (`update`), the component's root elements and markup are repl
 
 ### Reaching Live Nodes: `Key` + `Ref()`
 
-Instead of inventing global explicit IDs inside components and calling `Get(id)` (which can collide across multiple component instances), components assign a `Key("key")` to elements they build and obtain live DOM references after render via `Ref()`:
+An element id names a node **globally**, so it can only be chosen by whoever sees the whole page — the application or the chassis. A component cannot know how many copies of itself are on screen, so any id it invents is a collision waiting for the second instance: two `calendarslider`s on one page both wrote `id="cs-m-2026-09"` and `claimID` panicked.
 
-```go
-type RowComp struct {
-    dom.Element
-    row *dom.Element
-}
+The component therefore never names a node. It keeps the `*Element` it built, marks it with `Key`, and asks it for its live node:
 
-func (c *RowComp) Render() *dom.Element {
-    c.row = html.Span().Key("row").Text("initial")
-    return html.Div().Child(c.row)
-}
+- **`Key(string)`** — the author's identity contract (`BindChildren` already reconciles on it). It also makes the element addressable: during the WASM pass `dom` assigns it a generated id. SSR emits none, so `(*Element).String()` stays byte-identical across renders.
+- **`Ref() (Reference, bool)`** — the live DOM handle for that element. `false` before it has been rendered, and on the backend where there is no live DOM. It never mints an id (that would produce one no node carries, and a silent miss), so an element without a `Key` and without events or bindings simply answers `false`.
 
-func (c *RowComp) OnUpdate() {
-    if row, ok := c.row.Ref(); ok {
-        row.SetText("updated")
-    }
-}
-```
+`ID()` remains correct for elements the application or chassis declares outside any component — page roots like `"app"` / `"body"`, and hooks for externally-authored CSS.
 
-- **`Key(string)`**: Declares the author's identity contract and ensures the element receives an auto-generated live ID during WASM serialization without polluting SSR HTML.
-- **`Ref() (Reference, bool)`**: Returns the live DOM handle for the element if it has been rendered. Returns `(nil, false)` before render or on SSR.
+Worked example: see the `Key` + `Ref` section of [README.md](../README.md).
 
 ### Component Assets (Backend only)
 To bundle styles/icons, implement these interfaces:

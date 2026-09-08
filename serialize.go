@@ -29,6 +29,13 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 	// into elementToHTML/(*Element).String() after unifying the two
 	// serializers, minting a fresh id on every render of the same tree and
 	// making SSR output for any bound element non-deterministic.
+	//
+	// A KEYED element joins that list for the same reason: Key is the author's
+	// identity contract, and (*Element).Ref resolves the live node through the
+	// id dom put on it here. Without an id a keyed element is unreachable and
+	// Ref would answer a silent false. Still inside the hasObserver gate — SSR
+	// emits no id for a key, so (*Element).String stays byte-identical across
+	// renders.
 	if hasObserver {
 		if (len(el.events) > 0 || len(el.bindings) > 0 || el.autofocus || el.key != "") && el.id == "" {
 			el.id = generateID()
