@@ -34,28 +34,37 @@ func Mount(t *testing.T, id string) {
 	dom.SetLog(func(v ...any) { t.Log(v...) })
 }
 
+// find resolves a CSS selector to a live node. Every exported function below
+// starts here, so the document lookup and the null/undefined guard are written
+// once instead of once per function.
+func find(selector string) (js.Value, bool) {
+	el := js.Global().Get("document").Call("querySelector", selector)
+	if el.IsNull() || el.IsUndefined() {
+		return js.Undefined(), false
+	}
+	return el, true
+}
+
 // Query returns the first element matching a CSS selector.
 //
 // If the selector matches no element or the element carries no ID attribute,
 // Query returns (nil, false).
 func Query(selector string) (dom.Reference, bool) {
-	doc := js.Global().Get("document")
-	el := doc.Call("querySelector", selector)
-	if el.IsNull() || el.IsUndefined() {
+	el, ok := find(selector)
+	if !ok {
 		return nil, false
 	}
-	idAttr := el.Call("getAttribute", "id")
-	if idAttr.IsNull() || idAttr.IsUndefined() || idAttr.String() == "" {
+	id := el.Call("getAttribute", "id")
+	if id.IsNull() || id.IsUndefined() || id.String() == "" {
 		return nil, false
 	}
-	return dom.Get(idAttr.String())
+	return dom.Get(id.String())
 }
 
 // Text returns an element's textContent, or "" when the selector matches nothing.
 func Text(selector string) string {
-	doc := js.Global().Get("document")
-	el := doc.Call("querySelector", selector)
-	if el.IsNull() || el.IsUndefined() {
+	el, ok := find(selector)
+	if !ok {
 		return ""
 	}
 	return el.Get("textContent").String()
@@ -64,24 +73,27 @@ func Text(selector string) string {
 // Fire dispatches a bubbling event of the given type at the first element
 // matching selector. No-op when nothing matches.
 func Fire(selector, eventType string) {
-	doc := js.Global().Get("document")
-	el := doc.Call("querySelector", selector)
-	if el.IsNull() || el.IsUndefined() {
+	el, ok := find(selector)
+	if !ok {
 		return
 	}
-	opts := js.Global().Get("Object").New()
-	opts.Set("bubbles", true)
-	evt := js.Global().Get("Event").New(eventType, opts)
-	el.Call("dispatchEvent", evt)
+	fire(el, eventType)
 }
 
 // Fill sets an input's value and fires "input", the pair every form test needs.
 func Fill(selector, value string) {
-	doc := js.Global().Get("document")
-	el := doc.Call("querySelector", selector)
-	if el.IsNull() || el.IsUndefined() {
+	el, ok := find(selector)
+	if !ok {
 		return
 	}
 	el.Set("value", value)
-	Fire(selector, "input")
+	fire(el, "input")
+}
+
+// fire dispatches a bubbling event at an already-resolved node, so Fill does not
+// have to look the same selector up a second time.
+func fire(el js.Value, eventType string) {
+	opts := js.Global().Get("Object").New()
+	opts.Set("bubbles", true)
+	el.Call("dispatchEvent", js.Global().Get("Event").New(eventType, opts))
 }
