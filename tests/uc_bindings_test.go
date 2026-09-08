@@ -7,28 +7,8 @@ import (
 	"testing"
 
 	. "webtyp.com/dom"
+	"webtyp.com/dom/domtest"
 )
-
-// setupBindRoot prepares a clean #bind-root div in the page body.
-func setupBindRoot() {
-	doc := js.Global().Get("document")
-	existing := doc.Call("getElementById", "bind-root")
-	if !existing.IsNull() {
-		existing.Set("innerHTML", "")
-		return
-	}
-	root := doc.Call("createElement", "div")
-	root.Set("id", "bind-root")
-	doc.Get("body").Call("appendChild", root)
-}
-
-func queryText(selector string) string {
-	el := js.Global().Get("document").Call("querySelector", selector)
-	if el.IsNull() || el.IsUndefined() {
-		return "<not found>"
-	}
-	return el.Get("textContent").String()
-}
 
 // BindTextComp — regression: wireBindings called Render() a second time,
 // producing new auto-IDs that don't match the DOM, so BindText subscriptions
@@ -45,20 +25,20 @@ func (c *BindTextComp) Render() *Element {
 }
 
 func TestBindText_UpdatesDOM(t *testing.T) {
-	setupBindRoot()
+	domtest.Mount(t, "bind-root")
 	comp := &BindTextComp{}
 	comp.SetID("btc-root")
 	if err := Render("bind-root", comp); err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if got := queryText("#btc-span"); got != "initial" {
+	if got := domtest.Text("#btc-span"); got != "initial" {
 		t.Fatalf("before Set: want 'initial', got %q", got)
 	}
 
 	comp.label.Set("updated")
 
-	if got := queryText("#btc-span"); got != "updated" {
+	if got := domtest.Text("#btc-span"); got != "updated" {
 		t.Errorf("after Set: want 'updated', got %q — BindText subscription targeting wrong ID (double-Render bug)", got)
 	}
 }
@@ -81,7 +61,7 @@ func (c *CheckboxComp) Render() *Element {
 }
 
 func TestBindAttrBool_SyncsCheckedProperty(t *testing.T) {
-	setupBindRoot()
+	domtest.Mount(t, "bind-root")
 	comp := &CheckboxComp{}
 	comp.SetID("cbx-root")
 	if err := Render("bind-root", comp); err != nil {
@@ -125,20 +105,20 @@ func (p *ParentWithChild) Render() *Element {
 }
 
 func TestBindText_ChildComponent_UpdatesDOM(t *testing.T) {
-	setupBindRoot()
+	domtest.Mount(t, "bind-root")
 	parent := &ParentWithChild{}
 	parent.SetID("pwc-root")
 	if err := Render("bind-root", parent); err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if got := queryText("#cbc-span"); got != "child-initial" {
+	if got := domtest.Text("#cbc-span"); got != "child-initial" {
 		t.Fatalf("before Set: want 'child-initial', got %q", got)
 	}
 
 	parent.child.value.Set("child-updated")
 
-	if got := queryText("#cbc-span"); got != "child-updated" {
+	if got := domtest.Text("#cbc-span"); got != "child-updated" {
 		t.Errorf("after Set: want 'child-updated', got %q — child component bindings not wired (mountRecursive missing wireBindings)", got)
 	}
 }
