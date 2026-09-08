@@ -30,7 +30,7 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 	// serializers, minting a fresh id on every render of the same tree and
 	// making SSR output for any bound element non-deterministic.
 	if hasObserver {
-		if (len(el.events) > 0 || len(el.bindings) > 0 || el.autofocus) && el.id == "" {
+		if (len(el.events) > 0 || len(el.bindings) > 0 || el.autofocus || el.key != "") && el.id == "" {
 			el.id = generateID()
 		}
 		obs = observer[0]

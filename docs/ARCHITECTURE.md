@@ -129,6 +129,31 @@ On every re-render (`update`), the component's root elements and markup are repl
 7. **Signal Patches**: When a signal changes, the engine surgically updates the bound DOM node.
 8. **Cleanup**: When a component is unmounted, all its signal subscriptions and `OnCleanup` functions are automatically executed.
 
+### Reaching Live Nodes: `Key` + `Ref()`
+
+Instead of inventing global explicit IDs inside components and calling `Get(id)` (which can collide across multiple component instances), components assign a `Key("key")` to elements they build and obtain live DOM references after render via `Ref()`:
+
+```go
+type RowComp struct {
+    dom.Element
+    row *dom.Element
+}
+
+func (c *RowComp) Render() *dom.Element {
+    c.row = html.Span().Key("row").Text("initial")
+    return html.Div().Child(c.row)
+}
+
+func (c *RowComp) OnUpdate() {
+    if row, ok := c.row.Ref(); ok {
+        row.SetText("updated")
+    }
+}
+```
+
+- **`Key(string)`**: Declares the author's identity contract and ensures the element receives an auto-generated live ID during WASM serialization without polluting SSR HTML.
+- **`Ref() (Reference, bool)`**: Returns the live DOM handle for the element if it has been rendered. Returns `(nil, false)` before render or on SSR.
+
 ### Component Assets (Backend only)
 To bundle styles/icons, implement these interfaces:
 - `CSSProvider`: `RenderCSS() any` (Expected to return `*css.Stylesheet` for SSR)

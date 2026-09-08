@@ -245,6 +245,30 @@ func (b *Element) Render(parentID string) error {
 
 // --- Component Interface Implementation ---
 
+// Ref returns the live DOM node this element was rendered into.
+//
+// It is the typed alternative to inventing a global id and calling Get on it:
+// the author keeps the *Element they built and asks it for its node, so no name
+// is chosen, and two instances of one component cannot collide.
+//
+//	func (c *Comp) Render() *Element {
+//		c.row = NewElement("span").Key("row")
+//		return NewElement("div").Child(c.row)
+//	}
+//	func (c *Comp) onSomething() {
+//		if row, ok := c.row.Ref(); ok { row.SetText("hi") }
+//	}
+//
+// ok is false before the element has been rendered, and for an element dom
+// never gave an id — give it a Key to make it addressable. On the backend
+// (SSR) there is no live DOM and Get's stub answer is returned unchanged.
+func (b *Element) Ref() (Reference, bool) {
+	if b.id == "" {
+		return nil, false
+	}
+	return Get(b.id)
+}
+
 // GetID returns the element's ID.
 func (b *Element) GetID() string {
 	if b.id == "" {
