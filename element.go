@@ -276,10 +276,20 @@ func (b *Element) Children() []Component {
 
 // Helper to convert Element to HTML string (recursive)
 func elementToHTML(el *Element) string {
-	return serializeElement(el, func(c Component) string {
+	var renderChild childRenderer
+	renderChild = func(c Component) string {
 		if c == nil {
 			return ""
 		}
+		if vr, ok := c.(ViewRenderer); ok {
+			if c.GetID() == "" {
+				c.SetID(generateID())
+			}
+			childID := c.GetID()
+			root := vr.Render()
+			return serializeElement(root, renderChild, childID, true)
+		}
 		return c.String()
-	})
+	}
+	return serializeElement(el, renderChild, "", false)
 }

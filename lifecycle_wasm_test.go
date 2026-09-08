@@ -26,10 +26,10 @@ func (c *counterComp) Init(ctx Ctx) {
 }
 
 func (c *counterComp) Render() *Element {
-	return NewElement("div").ID("counter-div").
+	return NewElement("div").
 		Child(
-			NewElement("span").ID("count-val").BindText(c.count),
-			NewElement("button").ID("inc-btn").On("click", func(e Event) {
+			NewElement("span").Key("count-val").BindText(c.count),
+			NewElement("button").Key("inc-btn").On("click", func(e Event) {
 				c.count.Update(func(v string) string {
 					if v == "0" {
 						return "1"
@@ -44,12 +44,12 @@ func TestCounter(t *testing.T) {
 	c := &counterComp{}
 	Render("app", c)
 
-	val, _ := Get("count-val")
+	val, _ := GetByKey(c.GetID(), "count-val")
 	if val.(*elementWasm).val.Get("textContent").String() != "0" {
 		t.Errorf("Expected 0, got %s", val.(*elementWasm).val.Get("textContent").String())
 	}
 
-	btn, _ := Get("inc-btn")
+	btn, _ := GetByKey(c.GetID(), "inc-btn")
 	btn.(*elementWasm).val.Call("click")
 
 	if val.(*elementWasm).val.Get("textContent").String() != "1" {
@@ -100,11 +100,11 @@ func TestLifecycle(t *testing.T) {
 
 func TestShow(t *testing.T) {
 	cond := NewBool(false)
-	s := Show(cond, NewElement("span").ID("shown").Text("visible"))
+	s := Show(cond, NewElement("span").Key("shown").Text("visible"))
 	Render("app", s)
 
 	// Mounted while hidden — hidden is display:none, not unmounted.
-	if _, ok := Get("shown"); !ok {
+	if _, ok := GetByKey(s.GetID(), "shown"); !ok {
 		t.Fatal("content must stay mounted while hidden")
 	}
 	container, ok := Get(s.GetID())
@@ -152,20 +152,20 @@ func TestTwoWayInput(t *testing.T) {
 
 func TestBindChildren(t *testing.T) {
 	nodes := NewNodes(
-		NewElement("div").ID("n1").Text("one"),
-		NewElement("div").ID("n2").Text("two"),
+		NewElement("div").Key("n1").Text("one"),
+		NewElement("div").Key("n2").Text("two"),
 	)
 	list := NewElement("div").ID("list").BindChildren(nodes)
 	Render("app", list)
 
-	if _, ok := Get("n1"); !ok {
+	if _, ok := GetByKey(list.GetID(), "n1"); !ok {
 		t.Error("n1 missing")
 	}
-	if _, ok := Get("n2"); !ok {
+	if _, ok := GetByKey(list.GetID(), "n2"); !ok {
 		t.Error("n2 missing")
 	}
 
-	n1ref, _ := Get("n1")
+	n1ref, _ := GetByKey(list.GetID(), "n1")
 	n1val := n1ref.(*elementWasm).val
 
 	nodes.Set([]*Element{
@@ -180,8 +180,9 @@ func TestBindChildren(t *testing.T) {
 	// Verify order in DOM
 	parent, _ := Get("list")
 	first := parent.(*elementWasm).val.Get("children").Call("item", 0)
-	if first.Get("id").String() != "n2" {
-		t.Errorf("Expected n2 as first child, got %s", first.Get("id").String())
+	firstKey := first.Call("getAttribute", "data-key").String()
+	if firstKey != "n2" {
+		t.Errorf("Expected n2 as first child, got %s", firstKey)
 	}
 }
 
@@ -193,12 +194,12 @@ func TestBindChildren(t *testing.T) {
 func TestBindChildrenInitialRowBindings(t *testing.T) {
 	on := NewBool(false)
 	rows := NewNodes(
-		NewElement("li").ID("wrow1").BindClass("active", on).Text("row"),
+		NewElement("li").Key("wrow1").BindClass("active", on).Text("row"),
 	)
 	list := NewElement("ul").ID("wrows").BindChildren(rows)
 	Render("app", list)
 
-	ref, ok := Get("wrow1")
+	ref, ok := GetByKey(list.GetID(), "wrow1")
 	if !ok {
 		t.Fatal("wrow1 missing at first render")
 	}
@@ -224,13 +225,13 @@ type orderChildComp struct {
 }
 
 func (c *orderChildComp) Render() *Element {
-	return NewElement("span").ID("order-child")
+	return NewElement("span")
 }
 
 func (c *orderChildComp) Mounted() {
 	c.mounted = true
 	// Verify it can Get itself
-	if _, ok := Get("order-child"); !ok {
+	if _, ok := Get(c.GetID()); !ok {
 		panic("order-child element not in DOM in orderChildComp.Mounted")
 	}
 }
@@ -252,13 +253,13 @@ func (p *orderParentComp) Children() []Component {
 }
 
 func (p *orderParentComp) Render() *Element {
-	return NewElement("div").ID("order-parent").Child(p.child)
+	return NewElement("div").Child(p.child)
 }
 
 func (p *orderParentComp) Mounted() {
 	p.mounted = true
 	p.childMountedAt = p.child.mounted
-	if _, ok := Get("order-parent"); ok {
+	if _, ok := Get(p.GetID()); ok {
 		p.ownElementFound = true
 	}
 }
@@ -313,7 +314,7 @@ type scrollableItem struct {
 }
 
 func (s *scrollableItem) Render() *Element {
-	return NewElement("div").ID("item-to-scroll").
+	return NewElement("div").
 		Attr("style", "width: 200px; height: 100px; display: inline-block;")
 }
 
@@ -333,7 +334,7 @@ func (d *deckComp) Children() []Component {
 }
 
 func (d *deckComp) Render() *Element {
-	return NewElement("div").ID("deck-scroller").
+	return NewElement("div").
 		Attr("style", "width: 100px; height: 100px; overflow-x: auto; white-space: nowrap;").
 		Child(
 			NewElement("div").Attr("style", "width: 50px; height: 100px; display: inline-block;"),
@@ -343,7 +344,7 @@ func (d *deckComp) Render() *Element {
 
 func (d *deckComp) Mounted() {
 	d.mountedCalled = true
-	if el, ok := Get("item-to-scroll"); ok {
+	if el, ok := Get(d.child.GetID()); ok {
 		d.childFoundAtMnt = true
 		el.ScrollIntoView()
 	}
@@ -361,7 +362,7 @@ func TestMountedScrollableConsumer(t *testing.T) {
 	}
 
 	// Verify scroller exists and can scroll
-	scroller, ok := Get("deck-scroller")
+	scroller, ok := Get(c.GetID())
 	if !ok {
 		t.Fatal("deck-scroller not found")
 	}
@@ -376,8 +377,9 @@ func TestMountedScrollableConsumer(t *testing.T) {
 // the wrong one. scrollOptions is unexported, so this lives in the package
 // root (package dom), not dom/tests — see dom/AGENTS.md's Testing section.
 func TestScrollOptionsBehaviorDiffers(t *testing.T) {
-	Render("app", &scrollableItem{})
-	ref, ok := Get("item-to-scroll")
+	item := &scrollableItem{}
+	Render("app", item)
+	ref, ok := Get(item.GetID())
 	if !ok {
 		t.Fatal("item-to-scroll not found")
 	}
@@ -425,7 +427,7 @@ func (d *deckCompInstant) Children() []Component {
 }
 
 func (d *deckCompInstant) Render() *Element {
-	return NewElement("div").ID("deck-scroller-instant").
+	return NewElement("div").
 		Attr("style", "width: 100px; height: 100px; overflow-x: auto; white-space: nowrap;").
 		Child(
 			NewElement("div").Attr("style", "width: 50px; height: 100px; display: inline-block;"),
@@ -435,7 +437,7 @@ func (d *deckCompInstant) Render() *Element {
 
 func (d *deckCompInstant) Mounted() {
 	d.mountedCalled = true
-	if el, ok := Get("item-to-scroll"); ok {
+	if el, ok := Get(d.child.GetID()); ok {
 		d.childFoundAtMnt = true
 		el.ScrollIntoViewInstant()
 	}

@@ -131,7 +131,7 @@ func TestInternalWasm(t *testing.T) {
 		vr := &viewRendererComp{id: "vr-1"}
 		parent2 := (&Element{tag: "div"}).Child(vr)
 		var comps2 []Component
-		html2 := d.renderToHTML(parent2, &comps2, "parent-id")
+		html2 := d.renderToHTML(parent2, &comps2, "")
 
 		expected := "<div><div id='vr-1'></div></div>"
 		if html2 != expected {
@@ -143,7 +143,7 @@ func TestInternalWasm(t *testing.T) {
 		// HTML-entity-escaped.
 		elEsc := (&Element{tag: "img"}).Set(fmt.KeyValue{Key: "src", Value: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3C/svg%3E"})
 		var compsEsc []Component
-		htmlEsc := d.renderToHTML(elEsc, &compsEsc, "parent-id")
+		htmlEsc := d.renderToHTML(elEsc, &compsEsc, "")
 		expectedEsc := "<img src='data:image/svg+xml,%3Csvg xmlns=&#39;http://www.w3.org/2000/svg&#39;%3E%3C/svg%3E'></img>"
 		if htmlEsc != expectedEsc {
 			t.Errorf("expected %q, got %q", expectedEsc, htmlEsc)

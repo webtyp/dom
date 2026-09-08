@@ -90,6 +90,10 @@ func (c *Counter) Render() *dom.Element {
 
 Reactivity is achieved through **Signals**. When a signal changes, only the bound DOM nodes are updated. No `Update()` calls are needed.
 
+### Element IDs: Owned by `dom`
+
+`dom` is the sole source of element IDs within component renders. Components must not create global element IDs inside `Render()`. `dom` generates unique IDs per component instance during serialization. Any child element ID set by an author inside a component is discarded during serialization. Use `Key()` and `dom.GetByKey(ownerID, key)` for internal subtree element identification.
+
 ### Component Patterns: Declarative Wiring (The Canonical Way)
 
 The canonical way to build components is to describe the entire UI and its behavior inside `Render()`.

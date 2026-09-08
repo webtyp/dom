@@ -30,6 +30,9 @@ type DOM interface {
 	// Get retrieves an element by ID.
 	Get(id string) (Reference, bool)
 
+	// GetByKey retrieves an element by its author key within a component's subtree.
+	GetByKey(ownerID string, key string) (Reference, bool)
+
 	// Log provides logging functionality using the log function passed to New.
 	Log(v ...any)
 }

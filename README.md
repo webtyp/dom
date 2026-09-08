@@ -67,6 +67,8 @@ func main() {
 
 `Init` and `Mounted` are optional — only add them when there is work to do.
 
+> **Element IDs are owned by `dom`**: Components must not assign global element IDs inside `Render()`. `dom` generates unique IDs per component instance. Child element IDs set by authors inside components are discarded during serialization. Use `Key()` and `dom.GetByKey(ownerID, key)` for internal subtree element identification.
+
 ## Signals
 
 ```go

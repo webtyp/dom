@@ -17,8 +17,8 @@ import (
 func TestShowSecondToggleSharedContent(t *testing.T) {
 	cond := NewBool(false)
 	msg := NewString("Delete «laptop»?")
-	body := NewElement("div").ID("shared-body").
-		Child(NewElement("span").ID("shared-msg").BindText(msg))
+	body := NewElement("div").Key("shared-body").
+		Child(NewElement("span").Key("shared-msg").BindText(msg))
 
 	s := Show(cond, body)
 	Render("app", s)
@@ -31,14 +31,14 @@ func TestShowSecondToggleSharedContent(t *testing.T) {
 	}
 
 	// Hidden at start: mounted, display:none.
-	if _, ok := Get("shared-msg"); !ok {
+	if _, ok := GetByKey(s.GetID(), "shared-msg"); !ok {
 		t.Fatal("content must be mounted while hidden")
 	}
 	if display() != "none" {
 		t.Fatalf("expected display:none while hidden, got %q", display())
 	}
 
-	msgRef, _ := Get("shared-msg")
+	msgRef, _ := GetByKey(s.GetID(), "shared-msg")
 	msgNode := msgRef.(*elementWasm).val
 
 	// Two full open/close cycles — the second open is what panicked before.
@@ -55,7 +55,7 @@ func TestShowSecondToggleSharedContent(t *testing.T) {
 	cond.Set(true)
 
 	// Node identity survives toggles (no innerHTML re-render).
-	if again, _ := Get("shared-msg"); !again.(*elementWasm).val.Equal(msgNode) {
+	if again, _ := GetByKey(s.GetID(), "shared-msg"); !again.(*elementWasm).val.Equal(msgNode) {
 		t.Error("node identity lost across toggles")
 	}
 

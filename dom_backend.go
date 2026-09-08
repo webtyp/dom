@@ -21,6 +21,11 @@ func (d *domBackend) Get(id string) (Reference, bool) {
 	return &elementStub{}, true
 }
 
+// GetByKey retrieves an element by author key for backend (stub).
+func (d *domBackend) GetByKey(ownerID string, key string) (Reference, bool) {
+	return &elementStub{}, true
+}
+
 // Render is not implemented for backend.
 func (d *domBackend) Render(parentID string, component Component) error {
 	return fmt.Errf("Render to parent is not supported on backend. Use String() directly on component.")

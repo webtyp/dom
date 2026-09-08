@@ -101,6 +101,11 @@ func Get(id string) (Reference, bool) {
 	return instance.Get(id)
 }
 
+// GetByKey retrieves an element by its author key within a component's subtree.
+func GetByKey(ownerID string, key string) (Reference, bool) {
+	return instance.GetByKey(ownerID, key)
+}
+
 // OnHashChange registers a hash change listener.
 func OnHashChange(handler func(hash string)) {
 	instance.OnHashChange(handler)

@@ -28,7 +28,7 @@ type StateComp struct {
 func (c *StateComp) Init(_ Ctx) { c.sel = NewBool(true) }
 func (c *StateComp) Render() *Element {
 	return NewElement("div").ID(c.GetID()).
-		Child(NewElement("span").ID("stc-row").
+		Child(NewElement("span").Key("stc-row").
 			BindState(fakeState{"data-selected", "true"}, c.sel))
 }
 
@@ -40,7 +40,7 @@ func TestBindState_WritesValueAndRemoves(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 
-	row, ok := Get("stc-row")
+	row, ok := GetByKey(comp.GetID(), "stc-row")
 	if !ok {
 		t.Fatal("stc-row not mounted")
 	}
@@ -74,7 +74,7 @@ func (c *StateFuncComp) Init(_ Ctx) {
 }
 func (c *StateFuncComp) Render() *Element {
 	return NewElement("div").ID(c.GetID()).
-		Child(NewElement("span").ID("sf-row").
+		Child(NewElement("span").Key("sf-row").
 			BindStateFunc(fakeState{"data-current", "true"},
 				func() bool { return c.a.Get() && c.b.Get() }))
 }
@@ -87,7 +87,7 @@ func TestBindStateFunc_ComputedWritesValue(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 
-	row, ok := Get("sf-row")
+	row, ok := GetByKey(comp.GetID(), "sf-row")
 	if !ok {
 		t.Fatal("sf-row not mounted")
 	}

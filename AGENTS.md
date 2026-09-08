@@ -189,6 +189,7 @@ bound DOM node — never re-render a whole element (no Virtual DOM).
 - **Init** is for one-time setup (load storage, fetch, subscribe). Set signals here — even from a
   goroutine; the bound DOM patches directly. Register teardown with `ctx.OnCleanup(fn)`.
 - Embed `dom.Element` **as a value**, never as a pointer.
+- **Element IDs are owned by `dom`**: Components MUST NOT create global element IDs inside `Render()`. `dom` generates unique IDs per component instance. Child element IDs set by author are discarded by `dom` during serialization. Use `Key()` and `GetByKey(ownerID, key)` for internal subtree identification.
 
 ## No Generics
 

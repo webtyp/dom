@@ -136,6 +136,30 @@ func (d *domWasm) Get(id string) (Reference, bool) {
 	}, true
 }
 
+// GetByKey retrieves an element by its author key within a component's subtree.
+func (d *domWasm) GetByKey(ownerID string, key string) (Reference, bool) {
+	if ownerID == "" || key == "" {
+		return nil, false
+	}
+	ownerEl := d.getElement(ownerID)
+	if ownerEl.IsNull() || ownerEl.IsUndefined() {
+		return nil, false
+	}
+	found := ownerEl.Call("querySelector", "[data-key='"+key+"']")
+	if found.IsNull() || found.IsUndefined() {
+		return nil, false
+	}
+	id := found.Get("id").String()
+	if id != "" {
+		return d.Get(id)
+	}
+	return &elementWasm{
+		val: found,
+		dom: d,
+		id:  "",
+	}, true
+}
+
 // getElement resolves a parentID to a js.Value, handling special cases like "body" and "head".
 func (d *domWasm) getElement(id string) js.Value {
 	switch id {
@@ -513,7 +537,7 @@ func (d *domWasm) renderToHTML(el *Element, comps *[]Component, ownerID string) 
 		}
 	}
 
-	return serializeElement(el, renderChild, observer)
+	return serializeElement(el, renderChild, ownerID, true, observer)
 }
 
 func (d *domWasm) mountRecursive(c Component) {
@@ -1079,10 +1103,18 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 	}, existingLen)
 	for i := 0; i < existingLen; i++ {
 		node := existingNodes.Call("item", i)
+		k := node.Call("getAttribute", "data-key")
+		keyStr := ""
+		if !k.IsNull() && !k.IsUndefined() {
+			keyStr = k.String()
+		}
+		if keyStr == "" {
+			keyStr = node.Get("id").String()
+		}
 		currentKeys[i] = struct {
 			key string
 			val js.Value
-		}{node.Get("id").String(), node}
+		}{keyStr, node}
 	}
 
 	// Dev mode key validation

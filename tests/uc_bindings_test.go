@@ -41,7 +41,7 @@ type BindTextComp struct {
 func (c *BindTextComp) Init(_ Ctx) { c.label = NewString("initial") }
 func (c *BindTextComp) Render() *Element {
 	return NewElement("div").ID(c.GetID()).
-		Child(NewElement("span").ID("btc-span").BindText(c.label))
+		Child(NewElement("span").Key("btc-span").BindText(c.label))
 }
 
 func TestBindText_UpdatesDOM(t *testing.T) {
@@ -52,13 +52,13 @@ func TestBindText_UpdatesDOM(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if got := queryText("#btc-span"); got != "initial" {
+	if got := queryText("[data-key='btc-span']"); got != "initial" {
 		t.Fatalf("before Set: want 'initial', got %q", got)
 	}
 
 	comp.label.Set("updated")
 
-	if got := queryText("#btc-span"); got != "updated" {
+	if got := queryText("[data-key='btc-span']"); got != "updated" {
 		t.Errorf("after Set: want 'updated', got %q — BindText subscription targeting wrong ID (double-Render bug)", got)
 	}
 }
@@ -76,7 +76,7 @@ type CheckboxComp struct {
 
 func (c *CheckboxComp) Init(_ Ctx) { c.open = NewBool(true) }
 func (c *CheckboxComp) Render() *Element {
-	return NewElement("input").ID("cbx").Attr("type", "checkbox").
+	return NewElement("input").Attr("type", "checkbox").
 		BindAttrBool("checked", c.open)
 }
 
@@ -88,7 +88,7 @@ func TestBindAttrBool_SyncsCheckedProperty(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 
-	cbx := js.Global().Get("document").Call("getElementById", "cbx")
+	cbx := js.Global().Get("document").Call("getElementById", "cbx-root")
 	if !cbx.Get("checked").Bool() {
 		t.Fatalf("initial: .checked property want true, got false")
 	}
@@ -111,7 +111,7 @@ type ChildBindComp struct {
 func (c *ChildBindComp) Init(_ Ctx) { c.value = NewString("child-initial") }
 func (c *ChildBindComp) Render() *Element {
 	return NewElement("p").ID(c.GetID()).
-		Child(NewElement("span").ID("cbc-span").BindText(c.value))
+		Child(NewElement("span").Key("cbc-span").BindText(c.value))
 }
 
 type ParentWithChild struct {
@@ -132,13 +132,13 @@ func TestBindText_ChildComponent_UpdatesDOM(t *testing.T) {
 		t.Fatalf("Render: %v", err)
 	}
 
-	if got := queryText("#cbc-span"); got != "child-initial" {
+	if got := queryText("[data-key='cbc-span']"); got != "child-initial" {
 		t.Fatalf("before Set: want 'child-initial', got %q", got)
 	}
 
 	parent.child.value.Set("child-updated")
 
-	if got := queryText("#cbc-span"); got != "child-updated" {
+	if got := queryText("[data-key='cbc-span']"); got != "child-updated" {
 		t.Errorf("after Set: want 'child-updated', got %q — child component bindings not wired (mountRecursive missing wireBindings)", got)
 	}
 }
