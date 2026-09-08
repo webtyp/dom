@@ -3,6 +3,8 @@ PLAN: "feat(dom): domtest — the WASM test harness every consumer is currently 
 TAG: v0.13.12
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 9760513933871732085
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
