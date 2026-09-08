@@ -129,6 +129,19 @@ On every re-render (`update`), the component's root elements and markup are repl
 7. **Signal Patches**: When a signal changes, the engine surgically updates the bound DOM node.
 8. **Cleanup**: When a component is unmounted, all its signal subscriptions and `OnCleanup` functions are automatically executed.
 
+### Reaching Live Nodes: `Key` + `Ref()`
+
+An element id names a node **globally**, so it can only be chosen by whoever sees the whole page — the application or the chassis. A component cannot know how many copies of itself are on screen, so any id it invents is a collision waiting for the second instance: two `calendarslider`s on one page both wrote `id="cs-m-2026-09"` and `claimID` panicked.
+
+The component therefore never names a node. It keeps the `*Element` it built, marks it with `Key`, and asks it for its live node:
+
+- **`Key(string)`** — the author's identity contract (`BindChildren` already reconciles on it). It also makes the element addressable: during the WASM pass `dom` assigns it a generated id. SSR emits none, so `(*Element).String()` stays byte-identical across renders.
+- **`Ref() (Reference, bool)`** — the live DOM handle for that element. `false` before it has been rendered, and on the backend where there is no live DOM. It never mints an id (that would produce one no node carries, and a silent miss), so an element without a `Key` and without events or bindings simply answers `false`.
+
+`ID()` remains correct for elements the application or chassis declares outside any component — page roots like `"app"` / `"body"`, and hooks for externally-authored CSS.
+
+Worked example: see the `Key` + `Ref` section of [README.md](../README.md).
+
 ### Component Assets (Backend only)
 To bundle styles/icons, implement these interfaces:
 - `CSSProvider`: `RenderCSS() any` (Expected to return `*css.Stylesheet` for SSR)

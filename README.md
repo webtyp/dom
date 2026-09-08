@@ -67,6 +67,31 @@ func main() {
 
 `Init` and `Mounted` are optional — only add them when there is work to do.
 
+### Reaching Live Elements with `Key` + `Ref`
+
+To reach a live DOM node that a component built itself, store the `*Element`, assign it a `.Key(...)`, and call `.Ref()` after render:
+
+```go
+type RowComp struct {
+    dom.Element
+    row *dom.Element
+}
+
+func (c *RowComp) Render() *dom.Element {
+    c.row = html.Span().Key("row").Text("initial")
+    return html.Div().Child(c.row)
+}
+
+func (c *RowComp) Mounted() {
+    if row, ok := c.row.Ref(); ok {
+        row.SetText("updated")
+    }
+}
+```
+
+`Ref()` answers `false` until the element has been rendered, so call it from
+`Mounted()` or from an event handler — never from `Render()` itself.
+
 ## Signals
 
 ```go
