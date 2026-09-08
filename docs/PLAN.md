@@ -3,8 +3,9 @@ PLAN: "feat(dom): Element.Ref() — the typed bridge from a built element to its
 TAG: v0.13.11
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 1536857117267271900
+PR: https://github.com/webtyp/dom/pull/24
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
