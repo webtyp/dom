@@ -3,6 +3,8 @@ PLAN: "fix(dom): dom is the ONLY source of element ids — components may not cr
 TAG: v0.13.11
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 2484467419766286466
 ---
 
 # PLAN — `dom` única fuente de ids: los componentes no crean ids propios
