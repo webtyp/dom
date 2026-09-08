@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "webtyp.com/dom"
+	"webtyp.com/dom/domtest"
 )
 
 type RefComp struct {
@@ -19,7 +20,7 @@ func (c *RefComp) Render() *Element {
 }
 
 func TestRef_ResolvesKeyedElement(t *testing.T) {
-	setupBindRoot()
+	domtest.Mount(t, "bind-root")
 	comp := &RefComp{}
 	comp.SetID("ref-comp-root")
 	if err := Render("bind-root", comp); err != nil {
@@ -36,7 +37,7 @@ func TestRef_ResolvesKeyedElement(t *testing.T) {
 
 	rowRef.SetText("b")
 
-	if got := queryText("#bind-root span"); got != "b" {
+	if got := domtest.Text("#bind-root span"); got != "b" {
 		t.Errorf("expected text content 'b' after SetText through Ref(), got %q", got)
 	}
 }
@@ -54,7 +55,7 @@ func (p *TwoInstanceParent) Render() *Element {
 }
 
 func TestRef_TwoInstances_DoNotCollide(t *testing.T) {
-	setupBindRoot()
+	domtest.Mount(t, "bind-root")
 	parent := &TwoInstanceParent{}
 	parent.SetID("two-inst-root")
 	if err := Render("bind-root", parent); err != nil {
@@ -82,10 +83,10 @@ func TestRef_TwoInstances_DoNotCollide(t *testing.T) {
 
 	ref1.SetText("updated-1")
 
-	if got := queryText("#rc1 span"); got != "updated-1" {
+	if got := domtest.Text("#rc1 span"); got != "updated-1" {
 		t.Errorf("expected child1 span text 'updated-1', got %q", got)
 	}
-	if got := queryText("#rc2 span"); got != "a" {
+	if got := domtest.Text("#rc2 span"); got != "a" {
 		t.Errorf("expected child2 span text to remain 'a', got %q", got)
 	}
 }

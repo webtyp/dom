@@ -160,6 +160,7 @@ gotest
 - Public API tests → `dom/tests/uc_*_test.go` (`package dom_test`)
 - Tests requiring internal access → root of package (`package dom`)
 - All new browser API tests go in `dom/tests/`, not in the package root.
+- WASM tests use `webtyp.com/dom/domtest`; do not hand-roll a mount root or query/event helpers.
 - Each test cleans up after itself: call `LocalStorageClear()` and `SetDocumentAttr("data-theme", "")` in cleanup, ignoring the returned error.
 
 ---

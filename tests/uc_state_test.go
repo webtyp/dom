@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	. "webtyp.com/dom"
+	"webtyp.com/dom/domtest"
 )
 
 // fakeState stands in for widget.State in the consumer-shaped test: dom must
@@ -33,7 +34,7 @@ func (c *StateComp) Render() *Element {
 }
 
 func TestBindState_WritesValueAndRemoves(t *testing.T) {
-	setupBindRoot()
+	domtest.Mount(t, "bind-root")
 	comp := &StateComp{}
 	comp.SetID("stc-root")
 	if err := Render("bind-root", comp); err != nil {
@@ -80,7 +81,7 @@ func (c *StateFuncComp) Render() *Element {
 }
 
 func TestBindStateFunc_ComputedWritesValue(t *testing.T) {
-	setupBindRoot()
+	domtest.Mount(t, "bind-root")
 	comp := &StateFuncComp{}
 	comp.SetID("sf-root")
 	if err := Render("bind-root", comp); err != nil {

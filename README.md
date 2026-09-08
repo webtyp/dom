@@ -174,6 +174,26 @@ When on:
 - `BindChildren` warns on duplicate/empty keys
 - Nil signal / non-input `.Bind` / pointer-embedded `Element` emit warnings instead of panicking
 
+## Testing
+
+Use `webtyp.com/dom/domtest` for testing components against a live DOM in WASM (`//go:build wasm` test files). It is test-only and contributes nothing to application WASM binaries.
+
+Five functions: `Mount`, `Query`, `Text`, `Fire`, `Fill`.
+
+```go
+func TestCounter(t *testing.T) {
+    domtest.Mount(t, "app")
+    comp := &Counter{}
+    if err := dom.Render("app", comp); err != nil {
+        t.Fatalf("Render: %v", err)
+    }
+    domtest.Fire(".btn", "click")
+    if got := domtest.Text(".count"); got != "1" {
+        t.Errorf("want '1', got %q", got)
+    }
+}
+```
+
 ## Related Packages
 
 - [webtyp/html](https://github.com/webtyp/html) — HTML element builders (no-arg: `Div()`, `Span()`, `Button()`…)
