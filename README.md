@@ -161,6 +161,10 @@ html.Ul().BindChildren(c.rows)                                          // keyed
 | blur | `.OnBlur(func(e dom.Event))` |
 | submit | `.OnSubmit(func(e dom.Event))` |
 | toggle | `.OnToggle(func(e dom.Event))` |
+| mouseenter | `.OnMouseEnter(func(e dom.Event))` |
+| mouseleave | `.OnMouseLeave(func(e dom.Event))` |
+| focusin | `.OnFocusIn(func(e dom.Event))` |
+| focusout | `.OnFocusOut(func(e dom.Event))` |
 | keydown | `.OnKeyDown(func(e dom.KeyEvent))` + `e.Key() == dom.KeyArrowLeft` |
 
 There is no `.On(string, …)`: a typo'd type string compiled, never fired,

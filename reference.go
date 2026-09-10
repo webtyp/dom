@@ -51,6 +51,18 @@ type Reference interface {
 	// OnToggle registers a toggle handler on the live node.
 	OnToggle(handler func(event Event))
 
+	// OnMouseEnter registers a mouseenter handler on the live node.
+	OnMouseEnter(handler func(event Event))
+
+	// OnMouseLeave registers a mouseleave handler on the live node.
+	OnMouseLeave(handler func(event Event))
+
+	// OnFocusIn registers a focusin handler on the live node.
+	OnFocusIn(handler func(event Event))
+
+	// OnFocusOut registers a focusout handler on the live node.
+	OnFocusOut(handler func(event Event))
+
 	// OnKeyDown registers a keydown handler on the live node. The handler
 	// receives a KeyEvent, narrowed by the event, so the pressed key reads
 	// as a typed Key.

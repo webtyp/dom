@@ -141,6 +141,26 @@ func (b *Element) OnToggle(h func(Event)) *Element {
 	return b.on("toggle", h)
 }
 
+// OnMouseEnter registers a mouseenter handler.
+func (b *Element) OnMouseEnter(h func(Event)) *Element {
+	return b.on("mouseenter", h)
+}
+
+// OnMouseLeave registers a mouseleave handler.
+func (b *Element) OnMouseLeave(h func(Event)) *Element {
+	return b.on("mouseleave", h)
+}
+
+// OnFocusIn registers a focusin handler.
+func (b *Element) OnFocusIn(h func(Event)) *Element {
+	return b.on("focusin", h)
+}
+
+// OnFocusOut registers a focusout handler.
+func (b *Element) OnFocusOut(h func(Event)) *Element {
+	return b.on("focusout", h)
+}
+
 // OnKeyDown registers a keydown handler. The handler receives a KeyEvent —
 // narrowed by the event — so the pressed key reads as a typed dom.Key:
 //

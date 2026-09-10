@@ -72,6 +72,10 @@ func (e *elementStub) OnInput(handler func(event Event))      {}
 func (e *elementStub) OnBlur(handler func(event Event))       {}
 func (e *elementStub) OnSubmit(handler func(event Event))     {}
 func (e *elementStub) OnToggle(handler func(event Event))     {}
+func (e *elementStub) OnMouseEnter(handler func(event Event)) {}
+func (e *elementStub) OnMouseLeave(handler func(event Event)) {}
+func (e *elementStub) OnFocusIn(handler func(event Event))    {}
+func (e *elementStub) OnFocusOut(handler func(event Event))   {}
 func (e *elementStub) OnKeyDown(handler func(event KeyEvent)) {}
 func (e *elementStub) Focus()                                 {}
 func (e *elementStub) ScrollIntoView()                        {}

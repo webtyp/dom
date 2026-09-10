@@ -117,6 +117,26 @@ func (e *elementWasm) OnToggle(handler func(event Event)) {
 	e.on("toggle", handler)
 }
 
+// OnMouseEnter registers a mouseenter handler on the live node.
+func (e *elementWasm) OnMouseEnter(handler func(event Event)) {
+	e.on("mouseenter", handler)
+}
+
+// OnMouseLeave registers a mouseleave handler on the live node.
+func (e *elementWasm) OnMouseLeave(handler func(event Event)) {
+	e.on("mouseleave", handler)
+}
+
+// OnFocusIn registers a focusin handler on the live node.
+func (e *elementWasm) OnFocusIn(handler func(event Event)) {
+	e.on("focusin", handler)
+}
+
+// OnFocusOut registers a focusout handler on the live node.
+func (e *elementWasm) OnFocusOut(handler func(event Event)) {
+	e.on("focusout", handler)
+}
+
 // OnKeyDown registers a keydown handler on the live node. The handler
 // receives a KeyEvent: eventWasm implements Key(), so the assertion holds
 // for every event the browser delivers here.
