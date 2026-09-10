@@ -47,3 +47,14 @@ func (e *eventWasm) TargetChecked() bool {
 	}
 	return v.Bool()
 }
+
+// Key returns the pressed key: the DOM KeyboardEvent.key verbatim, guarded
+// like every other accessor — a non-keyboard event carries no key and reads
+// as "" rather than panicking.
+func (e *eventWasm) Key() Key {
+	v := e.Get("key")
+	if v.IsUndefined() || v.IsNull() {
+		return ""
+	}
+	return Key(v.String())
+}

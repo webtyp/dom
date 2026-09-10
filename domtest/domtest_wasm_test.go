@@ -62,7 +62,7 @@ func TestFireAndFill(t *testing.T) {
 	var lastVal string
 	input := dom.NewElement("input").
 		ID("test-input").
-		On("input", func(e dom.Event) {
+		OnInput(func(e dom.Event) {
 			lastVal = e.TargetValue()
 		})
 

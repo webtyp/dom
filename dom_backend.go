@@ -59,15 +59,33 @@ func (d *domBackend) SetHash(hash string) {}
 // elementStub is a no-op implementation of Reference for backend.
 type elementStub struct{}
 
-func (e *elementStub) GetAttr(key string) string                      { return "" }
-func (e *elementStub) Value() string                                  { return "" }
-func (e *elementStub) SetValue(value string)                          {}
-func (e *elementStub) SetAttr(key, value string)                      {}
-func (e *elementStub) RemoveAttr(key string)                          {}
-func (e *elementStub) SetText(text string)                            {}
-func (e *elementStub) Checked() bool                                  { return false }
-func (e *elementStub) On(eventType string, handler func(event Event)) {}
-func (e *elementStub) Focus()                                         {}
-func (e *elementStub) ScrollIntoView()                                {}
-func (e *elementStub) ScrollIntoViewInstant()                         {}
-func (e *elementStub) ScrollsX() bool                                 { return false }
+func (e *elementStub) GetAttr(key string) string              { return "" }
+func (e *elementStub) Value() string                          { return "" }
+func (e *elementStub) SetValue(value string)                  {}
+func (e *elementStub) SetAttr(key, value string)              {}
+func (e *elementStub) RemoveAttr(key string)                  {}
+func (e *elementStub) SetText(text string)                    {}
+func (e *elementStub) Checked() bool                          { return false }
+func (e *elementStub) OnClick(handler func(event Event))      {}
+func (e *elementStub) OnChange(handler func(event Event))     {}
+func (e *elementStub) OnInput(handler func(event Event))      {}
+func (e *elementStub) OnBlur(handler func(event Event))       {}
+func (e *elementStub) OnSubmit(handler func(event Event))     {}
+func (e *elementStub) OnToggle(handler func(event Event))     {}
+func (e *elementStub) OnKeyDown(handler func(event KeyEvent)) {}
+func (e *elementStub) Focus()                                 {}
+func (e *elementStub) ScrollIntoView()                        {}
+func (e *elementStub) ScrollIntoViewInstant()                 {}
+func (e *elementStub) ScrollsX() bool                         { return false }
+
+// eventStub is the backend Event: the backend never fires events, so every
+// accessor reads as absent — Key() returns "" like every other missing value
+// in this package ("-" = absent convention).
+type eventStub struct{}
+
+func (e *eventStub) PreventDefault()     {}
+func (e *eventStub) StopPropagation()    {}
+func (e *eventStub) TargetValue() string { return "" }
+func (e *eventStub) TargetID() string    { return "" }
+func (e *eventStub) TargetChecked() bool { return false }
+func (e *eventStub) Key() Key            { return "" }

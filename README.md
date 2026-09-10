@@ -44,7 +44,7 @@ func (c *Counter) Init(ctx dom.Ctx) {
 func (c *Counter) Render() *dom.Element {
     return html.Div().Child(
         html.Span().BindText(c.count).Class("count"),
-        html.Button().Text("Increment").On("click", func(e dom.Event) {
+        html.Button().Text("Increment").OnClick(func(e dom.Event) {
             c.n++
             c.count.Set(fmt.Sprint(c.n))
         }),
@@ -150,6 +150,23 @@ Structural:
 dom.Show(visible, html.Div().Child(...))  // toggle subtree visibility via display:none
 html.Ul().BindChildren(c.rows)                                          // keyed list
 ```
+
+## Events
+
+| I want | Use |
+|---|---|
+| click | `.OnClick(func(e dom.Event))` |
+| change | `.OnChange(func(e dom.Event))` |
+| input | `.OnInput(func(e dom.Event))` |
+| blur | `.OnBlur(func(e dom.Event))` |
+| submit | `.OnSubmit(func(e dom.Event))` |
+| toggle | `.OnToggle(func(e dom.Event))` |
+| keydown | `.OnKeyDown(func(e dom.KeyEvent))` + `e.Key() == dom.KeyArrowLeft` |
+
+There is no `.On(string, …)`: a typo'd type string compiled, never fired,
+and reported nothing. Keyboard input reads through `dom.Key`
+(`KeyArrowLeft/Right/Up/Down`, `KeyHome/End`, `KeyPageUp/PageDown`,
+`KeyEnter`, `KeySpace`, `KeyEscape`, `KeyTab`).
 
 ## Lifecycle
 

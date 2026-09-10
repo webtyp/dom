@@ -54,7 +54,7 @@ Div(
     Div(
         Strong("Ready to start?"),
     ).Class("header-box"),
-    Button("Get Started").Class("primary").On("click", func(e Event) {
+    Button("Get Started").Class("primary").OnClick(func(e Event) {
         Log("Button clicked!")
     }),
 ).Class("container")
@@ -78,7 +78,7 @@ func (c *Counter) Init(ctx dom.Ctx) {
 func (c *Counter) Render() *dom.Element {
 	return html.Div().Child(
 		html.Span().BindText(c.count).Class("count"),
-		html.Button().Text("Increment").On("click", func(e dom.Event) {
+		html.Button().Text("Increment").OnClick(func(e dom.Event) {
 			c.count.Update(func(v string) string {
 				i, _ := strconv.Atoi(v)
 				return strconv.Itoa(i + 1)
@@ -94,7 +94,7 @@ Reactivity is achieved through **Signals**. When a signal changes, only the boun
 
 The canonical way to build components is to describe the entire UI and its behavior inside `Render()`.
 
-1.  **Events in Render**: Attach event listeners directly to elements using `.On(eventType, handler)`.
+1.  **Events in Render**: Attach event listeners directly to elements using the typed methods (`.OnClick(handler)`, `.OnKeyDown(handler)`, …).
 2.  **Bindings in Render**: Use `.BindText()`, `.BindClass()`, etc., to link signals to DOM attributes or content.
 3.  **Type-safe Pairing**: Use `.For(other *Element)` for `<label for>` pairing.
 4.  **Autofocus**: Use `.Autofocus()` to focus an element when it first appears.
@@ -156,7 +156,7 @@ The `dom.Event` interface provides safe access to the JS Event without `syscall/
 
 ### Page-level listeners
 - `OnScrollCapture(handler func(scrollTop float64))`: Registers a `scroll` listener on `document` in **capture phase**, so it fires for **any** scroller in the page.
-  This exists because the `scroll` event does **not bubble** — it fires only on the element that actually scrolled. A shell that wants to react to the scroll of its content cannot know which descendant of which component overflows, and `Reference.On()` (bubble phase, per-element) would force it to know other packages' internals. Capture phase sees the event descend to any descendant.
+  This exists because the `scroll` event does **not bubble** — it fires only on the element that actually scrolled. A shell that wants to react to the scroll of its content cannot know which descendant of which component overflows, and per-element bubble-phase handlers (`.OnClick()`, …) would force it to know other packages' internals. Capture phase sees the event descend to any descendant.
   `scrollTop` is the vertical position of the element that fired the event. With several scrollers on screen, values interleave — compare with a threshold, never assume a continuous series. There is no way to unregister it: it is a document listener that lives as long as the page. (Backend: no-op — SSR has no scroll.)
 
 ### Bindings (Reactivity)
@@ -258,7 +258,7 @@ Regla de uso: `Trust` se debe utilizar ÚNICAMENTE con literales del propio cód
 `dom.Get(id)` returns a `Reference` — a live handle to a DOM node. Use its mutation methods to update the element **in-place** without re-rendering.
 
 > [!IMPORTANT]
-> `dom.Render(parentID, comp)` calls `cleanupChildren()` before writing new `innerHTML`, which **destroys all event listeners** registered via `ref.On()`. Always prefer in-place mutation over re-rendering when you only need to change a value, attribute, or text.
+> `dom.Render(parentID, comp)` calls `cleanupChildren()` before writing new `innerHTML`, which **destroys all event listeners** registered via the typed `ref.On*()` methods. Always prefer in-place mutation over re-rendering when you only need to change a value, attribute, or text.
 
 | Method | JS equivalent | Use case |
 |--------|---------------|----------|

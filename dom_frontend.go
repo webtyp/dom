@@ -737,7 +737,13 @@ func (d *domWasm) wirePendingEvents() {
 			// Track listener for the component that owns the element
 			prev := d.currentComponentID
 			d.currentComponentID = pe.ownerID
-			el.On(pe.name, pe.handler)
+			// Dynamic dispatch on the stored literal: the engine replays the
+			// exact type string the typed On* method registered. Same
+			// package, so the unexported door is reachable here and nowhere
+			// else.
+			if ew, ok := el.(*elementWasm); ok {
+				ew.on(pe.name, pe.handler)
+			}
 			d.currentComponentID = prev
 		}
 	}
@@ -986,7 +992,7 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 			}
 
 			// Listen for input changes
-			ref.On("input", func(e Event) {
+			ref.OnInput(func(e Event) {
 				sig.Set(ref.Value())
 			})
 		case "children":

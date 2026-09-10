@@ -15,3 +15,15 @@ type Event interface {
 	// Useful for checkbox and radio input elements.
 	TargetChecked() bool
 }
+
+// KeyEvent is what a keyboard handler receives: an Event plus the key.
+//
+// Key() is NOT on Event. A click carrying Key() == "" would be an illegal
+// state made representable; the handler's parameter is narrowed by the event
+// instead — OnKeyDown takes func(KeyEvent), every other On* takes
+// func(Event).
+type KeyEvent interface {
+	Event
+	// Key returns the pressed key: the DOM's KeyboardEvent.key verbatim.
+	Key() Key
+}

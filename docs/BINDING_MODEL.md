@@ -61,7 +61,7 @@ func (b *BotonEstado) Init(_ dom.Ctx) {
 func (b *BotonEstado) Render() *dom.Element {
     return dom.Button().
         BindText(b.estado).                       // "el texto del botón sigue a estado"
-        On("click", func(dom.Event) {
+        OnClick(func(dom.Event) {
             b.estado.Set(siguiente(b.estado.Get()))  // cambia el signal → la UI se actualiza sola
         })
 }
@@ -246,7 +246,7 @@ La lista de tareas es un `SignalNodes` (un signal cuyo valor es una lista de ele
 ul := dom.Ul().BindChildren(t.tareas)
 
 // En el handler del botón "Agregar":
-On("click", func(dom.Event) {
+OnClick(func(dom.Event) {
     t.tareas.Set(construirFilas(/* tareas + la nueva */))
     t.vacia.Set(false)
 })

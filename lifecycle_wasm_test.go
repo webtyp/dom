@@ -29,7 +29,7 @@ func (c *counterComp) Render() *Element {
 	return NewElement("div").ID("counter-div").
 		Child(
 			NewElement("span").ID("count-val").BindText(c.count),
-			NewElement("button").ID("inc-btn").On("click", func(e Event) {
+			NewElement("button").ID("inc-btn").OnClick(func(e Event) {
 				c.count.Update(func(v string) string {
 					if v == "0" {
 						return "1"

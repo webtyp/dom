@@ -48,8 +48,10 @@ func (e *elementWasm) Checked() bool {
 	return e.val.Get("checked").Bool()
 }
 
-// On registers a generic event handler.
-func (e *elementWasm) On(eventType string, handler func(event Event)) {
+// on registers a handler for the literal event type. Unexported: the engine
+// dispatches stored handler names through it, and every other caller uses a
+// typed On* method — the type is never a free string outside this file.
+func (e *elementWasm) on(eventType string, handler func(event Event)) {
 	eventKey := e.id + "::" + eventType
 	fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		evt := eventWasm{Value: args[0]}
@@ -83,6 +85,45 @@ func (e *elementWasm) On(eventType string, handler func(event Event)) {
 			}{compID, []string{eventKey}})
 		}
 	}
+}
+
+// OnClick registers a click handler on the live node.
+func (e *elementWasm) OnClick(handler func(event Event)) {
+	e.on("click", handler)
+}
+
+// OnChange registers a change handler on the live node.
+func (e *elementWasm) OnChange(handler func(event Event)) {
+	e.on("change", handler)
+}
+
+// OnInput registers an input handler on the live node.
+func (e *elementWasm) OnInput(handler func(event Event)) {
+	e.on("input", handler)
+}
+
+// OnBlur registers a blur handler on the live node.
+func (e *elementWasm) OnBlur(handler func(event Event)) {
+	e.on("blur", handler)
+}
+
+// OnSubmit registers a submit handler on the live node.
+func (e *elementWasm) OnSubmit(handler func(event Event)) {
+	e.on("submit", handler)
+}
+
+// OnToggle registers a toggle handler on the live node.
+func (e *elementWasm) OnToggle(handler func(event Event)) {
+	e.on("toggle", handler)
+}
+
+// OnKeyDown registers a keydown handler on the live node. The handler
+// receives a KeyEvent: eventWasm implements Key(), so the assertion holds
+// for every event the browser delivers here.
+func (e *elementWasm) OnKeyDown(handler func(event KeyEvent)) {
+	e.on("keydown", func(ev Event) {
+		handler(ev.(KeyEvent))
+	})
 }
 
 // Focus sets focus to the element.

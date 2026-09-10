@@ -101,10 +101,56 @@ func (b *Element) Attr(key, val string) *Element {
 	return b
 }
 
-// On adds a generic event handler.
-func (b *Element) On(t string, h func(Event)) *Element {
+// on registers a handler for the literal event type t. Unexported: the type
+// is never a free string at a call site — each On* method below carries its
+// own literal, so a mistyped type string cannot compile into a handler that
+// never fires and reports nothing. The registration machinery is unchanged;
+// only the door is typed.
+func (b *Element) on(t string, h func(Event)) *Element {
 	b.events = append(b.events, eventHandler{Name: t, Handler: h})
 	return b
+}
+
+// OnClick registers a click handler.
+func (b *Element) OnClick(h func(Event)) *Element {
+	return b.on("click", h)
+}
+
+// OnChange registers a change handler.
+func (b *Element) OnChange(h func(Event)) *Element {
+	return b.on("change", h)
+}
+
+// OnInput registers an input handler.
+func (b *Element) OnInput(h func(Event)) *Element {
+	return b.on("input", h)
+}
+
+// OnBlur registers a blur handler.
+func (b *Element) OnBlur(h func(Event)) *Element {
+	return b.on("blur", h)
+}
+
+// OnSubmit registers a submit handler.
+func (b *Element) OnSubmit(h func(Event)) *Element {
+	return b.on("submit", h)
+}
+
+// OnToggle registers a toggle handler.
+func (b *Element) OnToggle(h func(Event)) *Element {
+	return b.on("toggle", h)
+}
+
+// OnKeyDown registers a keydown handler. The handler receives a KeyEvent —
+// narrowed by the event — so the pressed key reads as a typed dom.Key:
+//
+//	el.OnKeyDown(func(e dom.KeyEvent) {
+//		if e.Key() == dom.KeyArrowLeft { ... }
+//	})
+func (b *Element) OnKeyDown(h func(KeyEvent)) *Element {
+	return b.on("keydown", func(e Event) {
+		h(e.(KeyEvent))
+	})
 }
 
 // Child adds one or more elements or components as children.

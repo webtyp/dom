@@ -33,8 +33,28 @@ type Reference interface {
 
 	// --- Events ---
 
-	// On registers a generic event handler (e.g., "click", "change", "input", "keydown").
-	On(eventType string, handler func(event Event))
+	// OnClick registers a click handler on the live node.
+	OnClick(handler func(event Event))
+
+	// OnChange registers a change handler on the live node.
+	OnChange(handler func(event Event))
+
+	// OnInput registers an input handler on the live node.
+	OnInput(handler func(event Event))
+
+	// OnBlur registers a blur handler on the live node.
+	OnBlur(handler func(event Event))
+
+	// OnSubmit registers a submit handler on the live node.
+	OnSubmit(handler func(event Event))
+
+	// OnToggle registers a toggle handler on the live node.
+	OnToggle(handler func(event Event))
+
+	// OnKeyDown registers a keydown handler on the live node. The handler
+	// receives a KeyEvent, narrowed by the event, so the pressed key reads
+	// as a typed Key.
+	OnKeyDown(handler func(event KeyEvent))
 
 	// Focus sets focus to the element.
 	Focus()
