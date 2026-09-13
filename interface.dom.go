@@ -21,6 +21,11 @@ type DOM interface {
 	// de paquete del mismo nombre.
 	OnScrollCapture(handler func(scrollTop float64))
 
+	// OnUserActivity registra listeners de presencia en el documento en fase de
+	// captura: el handler se llama cuando el usuario hace algo en cualquier
+	// parte de la página. Ver la función de paquete del mismo nombre.
+	OnUserActivity(handler func())
+
 	// GetHash devuelve el hash actual de la URL (ej. "#help").
 	GetHash() string
 

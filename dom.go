@@ -126,6 +126,34 @@ func OnScrollCapture(handler func(scrollTop float64)) {
 	instance.OnScrollCapture(handler)
 }
 
+// OnUserActivity registra en el DOCUMENTO, en fase de captura, los listeners que
+// significan "hay una persona ahí": movimiento y pulsación de puntero (ratón,
+// dedo o lápiz), tecla, rueda y scroll. El handler se llama cuando ocurre
+// cualquiera de ellos, en cualquier parte de la página.
+//
+// Existe por el mismo motivo que OnScrollCapture: la presencia es un hecho del
+// DOCUMENTO, no de un elemento. Colgar los listeners del elemento raíz de un
+// componente falla de tres formas — mouseenter se dispara UNA vez al cruzar el
+// borde y no se repite con el movimiento, keydown solo llega si el foco está
+// dentro de ese subárbol, y nada montado fuera del subárbol cuenta. Los tres
+// fallos desaparecen en captura sobre el documento.
+//
+// El handler NO recibe nada: el único dato es que ocurrió. Se llama como mucho
+// una vez por segundo — pointermove se dispara a la frecuencia de refresco y
+// esto es una señal de presencia, no un flujo de eventos. Quien mida
+// inactividad lo hace en segundos, así que la ventana no se nota.
+//
+// dom no sabe qué es estar inactivo: no hay temporizador, ni umbral, ni
+// concepto de "idle" aquí. Cuánto tiempo sin actividad cuenta, y qué pasa
+// entonces, es del consumidor.
+//
+// Registrar UNA sola vez: no hay forma de darlo de baja, son listeners del
+// documento que viven lo que vive la página. Dos llamadas registran dos juegos
+// de listeners, cada uno con su propia ventana de un segundo.
+func OnUserActivity(handler func()) {
+	instance.OnUserActivity(handler)
+}
+
 // GetHash gets the current hash.
 func GetHash() string {
 	return instance.GetHash()

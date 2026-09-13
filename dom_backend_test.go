@@ -46,3 +46,16 @@ func TestOnScrollCaptureBackendIsANoop(t *testing.T) {
 		t.Error("OnScrollCapture backend stub should never invoke the handler")
 	}
 }
+
+// TestOnUserActivityBackendIsANoop guarantees that a component registering a
+// presence listener in Init(ctx) still renders under SSR: the backend stub
+// never invokes the handler.
+func TestOnUserActivityBackendIsANoop(t *testing.T) {
+	called := false
+	OnUserActivity(func() {
+		called = true
+	})
+	if called {
+		t.Error("OnUserActivity backend stub should never invoke the handler")
+	}
+}

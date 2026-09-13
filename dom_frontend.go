@@ -1243,6 +1243,51 @@ func (d *domWasm) OnScrollCapture(handler func(scrollTop float64)) {
 	js.Global().Get("document").Call("addEventListener", "scroll", fn, true)
 }
 
+// userActivityEvents es el juego de eventos que significan presencia. pointermove
+// y pointerdown cubren ratón, dedo y lápiz con un solo listener cada uno — no hay
+// mousemove/touchstart por separado. wheel está porque una página que ya está al
+// final sigue emitiendo wheel sin emitir scroll: el usuario está ahí aunque nada
+// se mueva.
+//
+// NO incluye visibilitychange: una pestaña visible no es una persona presente, y
+// volver a ella no es actividad dentro de la página. Tampoco focus/blur de
+// window, por lo mismo.
+var userActivityEvents = []string{"pointermove", "pointerdown", "keydown", "wheel", "scroll"}
+
+// userActivityThrottleMs es la ventana mínima entre dos llamadas al handler.
+const userActivityThrottleMs = 1000
+
+// OnUserActivity — ver la función de paquete del mismo nombre.
+func (d *domWasm) OnUserActivity(handler func()) {
+	// last es de ESTE registro, no del singleton: dos llamadas a OnUserActivity
+	// deben tener ventanas independientes, o cada handler recibiría solo parte
+	// de los pulsos. No es estado global mutable — muere con el listener.
+	last := -float64(userActivityThrottleMs)
+
+	// UN solo js.Func para los cinco eventos: comparten la ventana, de modo que
+	// un clic durante un movimiento no cuenta dos veces.
+	fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		now := args[0].Get("timeStamp").Float()
+		if now-last < userActivityThrottleMs {
+			return nil
+		}
+		last = now
+		handler()
+		return nil
+	})
+
+	// capture: scroll no burbujea, y en captura el documento ve cualquier
+	// descendiente. passive: este handler nunca llama preventDefault, y
+	// declararlo deja al navegador desplazar sin esperar a Go.
+	opts := d.objectCtor.New()
+	opts.Set("capture", true)
+	opts.Set("passive", true)
+
+	for _, ev := range userActivityEvents {
+		d.document.Call("addEventListener", ev, fn, opts)
+	}
+}
+
 // GetHash returns current window.location.hash.
 func (d *domWasm) GetHash() string {
 	return js.Global().Get("location").Get("hash").String()
