@@ -2,9 +2,8 @@
 PLAN: "feat(dom): OnUserActivity — one document-level presence signal"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: review
+STATUS: running
 SESSION: 1959404247782613008
-PR: https://github.com/webtyp/dom/pull/26
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.

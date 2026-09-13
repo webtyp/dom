@@ -1225,14 +1225,14 @@ func (d *domWasm) OnHashChange(handler func(hash string)) {
 	js.Global().Get("window").Call("addEventListener", "hashchange", fn)
 }
 
-// OnScrollCapture registra el listener en el documento con capture=true, que es lo
-// que permite ver el scroll de descendientes: el evento scroll no burbujea, pero
-// sí baja por la fase de captura.
+// OnScrollCapture registers the listener on document with capture=true, allowing
+// observation of descendant scrolls: scroll events do not bubble, but propagate
+// down during the capture phase.
 func (d *domWasm) OnScrollCapture(handler func(scrollTop float64)) {
 	fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		target := args[0].Get("target")
-		// document.scrollingElement cuando el que se desplaza es el documento
-		// mismo: ahí el target es el Document, que no tiene scrollTop.
+		// document.scrollingElement when the element scrolling is the document itself:
+		// in that case target is Document, which lacks scrollTop.
 		top := target.Get("scrollTop")
 		if top.IsUndefined() || top.IsNull() {
 			top = js.Global().Get("document").Get("scrollingElement").Get("scrollTop")
@@ -1243,29 +1243,28 @@ func (d *domWasm) OnScrollCapture(handler func(scrollTop float64)) {
 	js.Global().Get("document").Call("addEventListener", "scroll", fn, true)
 }
 
-// userActivityEvents es el juego de eventos que significan presencia. pointermove
-// y pointerdown cubren ratón, dedo y lápiz con un solo listener cada uno — no hay
-// mousemove/touchstart por separado. wheel está porque una página que ya está al
-// final sigue emitiendo wheel sin emitir scroll: el usuario está ahí aunque nada
-// se mueva.
+// userActivityEvents is the set of events indicating user presence. pointermove
+// and pointerdown cover mouse, touch, and stylus with one listener each — no
+// separate mousemove/touchstart needed. wheel is included because a page scrolled
+// to the bottom continues emitting wheel without scroll: the user is present even
+// if nothing moves.
 //
-// NO incluye visibilitychange: una pestaña visible no es una persona presente, y
-// volver a ella no es actividad dentro de la página. Tampoco focus/blur de
-// window, por lo mismo.
+// Does NOT include visibilitychange: a visible tab is not a present user, and
+// returning to a tab is not in-page activity. Likewise for window focus/blur.
 var userActivityEvents = []string{"pointermove", "pointerdown", "keydown", "wheel", "scroll"}
 
-// userActivityThrottleMs es la ventana mínima entre dos llamadas al handler.
+// userActivityThrottleMs is the minimum window between handler invocations.
 const userActivityThrottleMs = 1000
 
-// OnUserActivity — ver la función de paquete del mismo nombre.
+// OnUserActivity — see the package-level function of the same name.
 func (d *domWasm) OnUserActivity(handler func()) {
-	// last es de ESTE registro, no del singleton: dos llamadas a OnUserActivity
-	// deben tener ventanas independientes, o cada handler recibiría solo parte
-	// de los pulsos. No es estado global mutable — muere con el listener.
+	// last is per-registration, not singleton: two calls to OnUserActivity
+	// must have independent throttling windows, or each handler would only receive
+	// a fraction of pulses. It is not global mutable state — closes over with listener.
 	last := -float64(userActivityThrottleMs)
 
-	// UN solo js.Func para los cinco eventos: comparten la ventana, de modo que
-	// un clic durante un movimiento no cuenta dos veces.
+	// A single js.Func for all five events so they share the window and a click
+	// during a mouse move doesn't trigger two pulses.
 	fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		now := args[0].Get("timeStamp").Float()
 		if now-last < userActivityThrottleMs {
@@ -1276,9 +1275,9 @@ func (d *domWasm) OnUserActivity(handler func()) {
 		return nil
 	})
 
-	// capture: scroll no burbujea, y en captura el documento ve cualquier
-	// descendiente. passive: este handler nunca llama preventDefault, y
-	// declararlo deja al navegador desplazar sin esperar a Go.
+	// capture: scroll does not bubble, and capture allows the document to observe any
+	// descendant. passive: handler never calls preventDefault, allowing browser scrolling
+	// without waiting for Go.
 	opts := d.objectCtor.New()
 	opts.Set("capture", true)
 	opts.Set("passive", true)
