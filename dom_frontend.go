@@ -55,7 +55,6 @@ type domWasm struct {
 		id    string
 		unsub func()
 	}
-	updating     []string
 	rootElements []struct {
 		id   string
 		root *Element
@@ -247,147 +246,6 @@ func (d *domWasm) initComponent(c Component) {
 	d.initedIDs = append(d.initedIDs, id)
 }
 
-// update re-renders the component and replaces it in the DOM.
-func (d *domWasm) update(id string) {
-	if d.document.IsNull() || d.document.IsUndefined() {
-		d.Log("webtyp/dom: document not found in update")
-		return
-	}
-
-	for _, uid := range d.updating {
-		if uid == id {
-			if d.devMode {
-				d.Log("webtyp/dom: re-entrant update on", id, "ignored")
-			}
-			return
-		}
-	}
-	d.updating = append(d.updating, id)
-
-	var component Component
-	// Resolve the full outer component from tracked references.
-	for _, item := range d.mountedComponents {
-		if item.id == id {
-			component = item.comp
-			break
-		}
-	}
-
-	if component == nil {
-		// Remove from updating before returning
-		for i, uid := range d.updating {
-			if uid == id {
-				d.updating = append(d.updating[:i], d.updating[i+1:]...)
-				break
-			}
-		}
-		return
-	}
-
-	// Clean up old children listeners/lifecycle
-	d.cleanupChildren(id)
-	d.cleanupListeners(id)
-
-	var children []Component
-	var html string
-
-	if vr, ok := component.(ViewRenderer); ok {
-		root := vr.Render()
-		injectComponentID(root, id)
-		html = d.renderToHTML(root, &children, id)
-	} else if en, ok := component.(elementNode); ok {
-		html = d.renderToHTML(en.AsElement(), &children, id)
-	} else if el, ok := component.(*Element); ok {
-		html = d.renderToHTML(el, &children, id)
-	} else {
-		html = component.String()
-	}
-
-	// Replace the element in the DOM
-	elRaw := d.document.Call("getElementById", id)
-	if elRaw.IsNull() || elRaw.IsUndefined() {
-		if d.devMode {
-			d.Log("webtyp/dom: component element not found during update:", id, "(this usually means the component root element has no ID)")
-		}
-		// Remove from updating before returning
-		for i, uid := range d.updating {
-			if uid == id {
-				d.updating = append(d.updating[:i], d.updating[i+1:]...)
-				break
-			}
-		}
-		return
-	}
-
-	// Snapshot active element and cursor before outerHTML destroys them.
-	activeEl := d.document.Get("activeElement")
-	activeID := ""
-	cursorStart, cursorEnd := 0, 0
-	if !activeEl.IsNull() && !activeEl.IsUndefined() {
-		activeID = activeEl.Get("id").String()
-		cs := activeEl.Get("selectionStart")
-		ce := activeEl.Get("selectionEnd")
-		if !cs.IsNull() && !cs.IsUndefined() {
-			cursorStart = cs.Int()
-		}
-		if !ce.IsNull() && !ce.IsUndefined() {
-			cursorEnd = ce.Int()
-		}
-	}
-
-	elRaw.Set("outerHTML", html)
-
-	// Clear element from cache as it was replaced
-	d.removeFromElementCache(id)
-
-	// Update lifecycle maps
-	d.trackChildren(id, children)
-
-	// Set current component ID for event wiring
-	prevID := d.currentComponentID
-	d.currentComponentID = id
-	d.wirePendingEvents()
-	d.wireBindings(id)
-	d.currentComponentID = prevID
-
-	// Mount new children
-	for _, child := range children {
-		d.mountRecursive(child)
-	}
-
-	if m, ok := component.(mountable); ok {
-		m.Mounted()
-	}
-
-	// Restore focus and cursor to the element that was active before outerHTML replacement.
-	if activeID != "" {
-		restored := d.document.Call("getElementById", activeID)
-		if !restored.IsNull() && !restored.IsUndefined() {
-			currentActive := d.document.Get("activeElement")
-			alreadyActive := !currentActive.IsNull() && !currentActive.IsUndefined() &&
-				currentActive.Get("id").String() == activeID
-			if !alreadyActive {
-				restored.Call("focus")
-			}
-			cs := restored.Get("selectionStart")
-			if !cs.IsNull() && !cs.IsUndefined() {
-				restored.Call("setSelectionRange", cursorStart, cursorEnd)
-			}
-		}
-	}
-
-	for i, uid := range d.updating {
-		if uid == id {
-			d.updating = append(d.updating[:i], d.updating[i+1:]...)
-			break
-		}
-	}
-}
-
-// Update re-renders the component (NOT public anymore, but needed for internal reasons? No, PLAN says unexport)
-// ActuallyPLAN says: "Update re-renders a component." -> was dom.Update(comp).
-// PLAN Change 4 says: "Unexport Update -> update (an internal primitive used by Show/BindChildren...)"
-
 // Append injects the component's content after the last child of the parent element.
 func (d *domWasm) Append(parentID string, component Component) error {
 	if component.GetID() == "" {
@@ -441,21 +299,6 @@ func (d *domWasm) Append(parentID string, component Component) error {
 	}
 
 	return nil
-}
-
-// unmount removes a component from the DOM and recursively cleans up children.
-func (d *domWasm) unmount(component Component) {
-	d.unmountRecursive(component)
-
-	// Remove the element from the DOM
-	id := component.GetID()
-	el := d.document.Call("getElementById", id)
-	if !el.IsNull() && !el.IsUndefined() {
-		el.Call("remove")
-	}
-
-	d.removeFromElementCache(id)
-	d.untrackComponent(id)
 }
 
 func (d *domWasm) renderToHTML(el *Element, comps *[]Component, ownerID string) string {
@@ -717,17 +560,6 @@ func (d *domWasm) trackChildren(parentID string, children []Component) {
 			parentID string
 			childIDs []string
 		}{parentID, childIDs})
-	}
-}
-
-func (d *domWasm) removeFromElementCache(id string) {
-	for i, item := range d.elementCache {
-		if item.id == id {
-			lastIdx := len(d.elementCache) - 1
-			d.elementCache[i] = d.elementCache[lastIdx]
-			d.elementCache = d.elementCache[:lastIdx]
-			break
-		}
 	}
 }
 

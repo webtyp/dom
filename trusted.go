@@ -1,20 +1,20 @@
 package dom
 
-// TrustedHTML es marcado que el AUTOR del programa garantiza seguro. El tipo
-// existe para que meter datos no confiables en el documento no compile: no
-// hay conversión implícita desde string, y el único constructor obliga a
-// escribir una línea que un grep encuentra.
+// TrustedHTML is markup the program's AUTHOR guarantees is safe. The type
+// exists so that putting untrusted data into the document fails to compile:
+// there is no implicit conversion from string, and the only constructor
+// forces a line a grep can find.
 //
-// Regla: sólo literales del propio código, o el resultado de un builder de
-// este ecosistema. NUNCA una cadena que venga de una petición, de una base de
-// datos, de un perfil de OAuth o de otro servicio.
+// Rule: only literals from the code itself, or the output of a builder from
+// this ecosystem. NEVER a string that came from a request, a database, an
+// OAuth profile, or another service.
 type TrustedHTML string
 
-// Trust marca html como confiable. Es la ÚNICA forma de producir un
-// TrustedHTML, y su nombre es lo que hace auditable el programa: buscar
-// "dom.Trust(" enumera todos los puntos donde el escapado se saltea a
-// propósito.
+// Trust marks html as trusted. It is the ONLY way to produce a TrustedHTML,
+// and its name is what makes the program auditable: searching for
+// "dom.Trust(" enumerates every point where escaping is deliberately
+// skipped.
 //
-// Si estás por escribir dom.Trust(algoQueVinoDeAfuera), el defecto está en el
-// diseño del llamador, no acá.
+// If you are about to write dom.Trust(somethingThatCameFromOutside), the
+// defect is in the caller's design, not here.
 func Trust(html string) TrustedHTML { return TrustedHTML(html) }

@@ -20,22 +20,6 @@ func TestInternalWasm(t *testing.T) {
 		}
 	})
 
-	t.Run("Element Cache", func(t *testing.T) {
-		d.removeFromElementCache("none")
-		d.elementCache = append(d.elementCache,
-			struct {
-				id  string
-				val js.Value
-			}{"id1", js.Null()},
-			struct {
-				id  string
-				val js.Value
-			}{"id2", js.Null()},
-		)
-		d.removeFromElementCache("id1")
-		d.removeFromElementCache("id2")
-	})
-
 	t.Run("Component Tracking", func(t *testing.T) {
 		d.untrackComponent("none")
 		cl1 := &comp{id: "id1"}

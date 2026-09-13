@@ -31,14 +31,6 @@ func (d *domBackend) Append(parentID string, component Component) error {
 	return fmt.Errf("Append not supported in backend/stub")
 }
 
-// update is not implemented for backend.
-func (d *domBackend) update(id string) {
-}
-
-// unmount is not implemented for backend.
-func (d *domBackend) unmount(component Component) {
-}
-
 func (d *domBackend) OnHashChange(handler func(hash string)) {}
 
 func (d *domBackend) OnScrollCapture(handler func(scrollTop float64)) {}

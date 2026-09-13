@@ -19,7 +19,33 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 	defer endPass()
 
 	var obs elementObserver
-	hasObserver := len(observer) > 0 && observer[0] != nil
+	if len(observer) > 0 {
+		obs = observer[0]
+	}
+
+	// One fmt.Builder for the whole tree, not one string per node glued
+	// together with +=: string is immutable, so s += x reallocates and
+	// recopies everything s already holds, every time — for a tree with N
+	// bytes of total output that is O(N²) copying, not O(N), because every
+	// parent re-copies the already-serialized text of all its children each
+	// time it appends the next one. fmt.Builder (this package's answer to
+	// strings.Builder — dom/AGENTS.md bans the stdlib one) grows one buffer
+	// amortized and pays for the copy once.
+	b := fmt.Convert()
+	writeElement(b, el, renderChild, obs)
+	return b.String()
+}
+
+// writeElement appends el's HTML to b. obs is nil on the SSR path and
+// non-nil on WASM (see serializeElement) — hasObserver below is exactly the
+// old "was an observer passed" check, just derived from a plain nil check
+// now that obs is no longer a variadic slice at this layer.
+func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs elementObserver) {
+	if el == nil {
+		return
+	}
+
+	hasObserver := obs != nil
 
 	// Auto-generating an id for a bound/eventful element only matters where
 	// something will later look that id up in a live DOM to patch or wire it
@@ -40,14 +66,13 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 		if (len(el.events) > 0 || len(el.bindings) > 0 || el.autofocus || el.key != "") && el.id == "" {
 			el.id = generateID()
 		}
-		obs = observer[0]
 		obs(el)
 	}
 
-	s := "<" + el.tag
+	b.WriteString("<").WriteString(el.tag)
 	if el.id != "" {
 		claimID(el.id, el.tag)
-		s += " id='" + fmt.Convert(el.id).EscapeAttr() + "'"
+		b.WriteString(" id='").WriteString(fmt.Convert(el.id).EscapeAttr()).WriteString("'")
 	}
 
 	classes := el.classes
@@ -56,77 +81,77 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 	hasTextContent := false
 	var boundChildren []*Element
 
-	for _, b := range el.bindings {
-		switch b.kind {
+	for _, bind := range el.bindings {
+		switch bind.kind {
 		case "text":
-			if b.signal != nil {
-				if sig, ok := b.signal.(*SignalString); ok {
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalString); ok {
 					textContent = sig.Get()
 				}
-			} else if b.fnString != nil {
-				textContent = b.fnString()
+			} else if bind.fnString != nil {
+				textContent = bind.fnString()
 			}
 			hasTextContent = true
 		case "attr":
 			val := ""
-			if b.signal != nil {
-				if sig, ok := b.signal.(*SignalString); ok {
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalString); ok {
 					val = sig.Get()
 				}
-			} else if b.fnString != nil {
-				val = b.fnString()
+			} else if bind.fnString != nil {
+				val = bind.fnString()
 			}
 			found := false
 			for i, attr := range attrs {
-				if attr.Key == b.name {
+				if attr.Key == bind.name {
 					attrs[i].Value = val
 					found = true
 					break
 				}
 			}
 			if !found {
-				attrs = append(attrs, fmt.KeyValue{Key: b.name, Value: val})
+				attrs = append(attrs, fmt.KeyValue{Key: bind.name, Value: val})
 			}
 		case "class":
 			on := false
-			if b.signal != nil {
-				if sig, ok := b.signal.(*SignalBool); ok {
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalBool); ok {
 					on = sig.Get()
 				}
-			} else if b.fnBool != nil {
-				on = b.fnBool()
+			} else if bind.fnBool != nil {
+				on = bind.fnBool()
 			}
 			if on {
-				classes = append(classes, b.name)
+				classes = append(classes, bind.name)
 			}
 		case "attrbool":
 			on := false
-			if b.signal != nil {
-				if sig, ok := b.signal.(*SignalBool); ok {
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalBool); ok {
 					on = sig.Get()
 				}
-			} else if b.fnBool != nil {
-				on = b.fnBool()
+			} else if bind.fnBool != nil {
+				on = bind.fnBool()
 			}
 			if on {
-				attrs = append(attrs, fmt.KeyValue{Key: b.name, Value: ""})
+				attrs = append(attrs, fmt.KeyValue{Key: bind.name, Value: ""})
 			}
 		case "state":
 			on := false
-			if b.signal != nil {
-				if sig, ok := b.signal.(*SignalBool); ok {
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalBool); ok {
 					on = sig.Get()
 				}
-			} else if b.fnBool != nil {
-				on = b.fnBool()
+			} else if bind.fnBool != nil {
+				on = bind.fnBool()
 			}
 			if on {
-				attrs = append(attrs, fmt.KeyValue{Key: b.state.Key(), Value: b.state.Value()})
+				attrs = append(attrs, fmt.KeyValue{Key: bind.state.Key(), Value: bind.state.Value()})
 			}
 		case "value":
 			val := ""
-			if b.signal != nil {
-				if sig, ok := b.signal.(*SignalString); ok {
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalString); ok {
 					val = sig.Get()
 				}
 			}
@@ -143,7 +168,7 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 			// top of the static ones, double-emitting every row and
 			// panicking claimID on the resulting duplicate ids.
 			if hasObserver {
-				if sig, ok := b.signal.(*SignalNodes); ok {
+				if sig, ok := bind.signal.(*SignalNodes); ok {
 					boundChildren = append(boundChildren, sig.Get()...)
 				}
 			}
@@ -151,44 +176,44 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 	}
 
 	if len(classes) > 0 {
-		s += " class='"
+		b.WriteString(" class='")
 		for i, c := range classes {
 			if i > 0 {
-				s += " "
+				b.WriteString(" ")
 			}
-			s += fmt.Convert(c).EscapeAttr()
+			b.WriteString(fmt.Convert(c).EscapeAttr())
 		}
-		s += "'"
+		b.WriteString("'")
 	}
 	for _, attr := range attrs {
-		s += " " + fmt.Convert(attr.Key).EscapeAttr() + "='" + fmt.Convert(attr.Value).EscapeAttr() + "'"
+		b.WriteString(" ").WriteString(fmt.Convert(attr.Key).EscapeAttr()).
+			WriteString("='").WriteString(fmt.Convert(attr.Value).EscapeAttr()).WriteString("'")
 	}
-	s += ">"
+	b.WriteString(">")
 	if el.void {
-		return s
+		return
 	}
 
 	if hasTextContent {
-		s += fmt.Convert(textContent).EscapeHTML()
+		b.WriteString(fmt.Convert(textContent).EscapeHTML())
 	} else {
 		for _, node := range boundChildren {
-			s += serializeElement(node, renderChild, obs)
+			writeElement(b, node, renderChild, obs)
 		}
 		for _, child := range el.children {
 			switch v := child.(type) {
 			case *Element:
-				s += serializeElement(v, renderChild, obs)
+				writeElement(b, v, renderChild, obs)
 			case TrustedHTML:
-				s += string(v)
+				b.WriteString(string(v))
 			case string:
-				s += fmt.Convert(v).EscapeHTML()
+				b.WriteString(fmt.Convert(v).EscapeHTML())
 			case Component:
-				s += renderChild(v)
+				b.WriteString(renderChild(v))
 			default:
-				s += fmt.Convert(fmt.Sprint(v)).EscapeHTML()
+				b.WriteString(fmt.Convert(fmt.Sprint(v)).EscapeHTML())
 			}
 		}
 	}
-	s += "</" + el.tag + ">"
-	return s
+	b.WriteString("</").WriteString(el.tag).WriteString(">")
 }

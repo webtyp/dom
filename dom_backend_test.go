@@ -24,9 +24,6 @@ func TestBackendStubs(t *testing.T) {
 		t.Error("Append should return error on backend")
 	}
 
-	d.(interface{ update(string) }).update("")
-
-	d.(interface{ unmount(Component) }).unmount(nil)
 	d.OnHashChange(func(h string) {})
 	if d.GetHash() != "" {
 		t.Error("GetHash should return empty string on backend")
