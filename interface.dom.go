@@ -3,28 +3,33 @@ package dom
 // DOM is the main entry point for interacting with the browser.
 // It is designed to be injected into your components.
 type DOM interface {
-	// Render injecta un componente en un elemento padre.
-	// 1. Llama a componente.Init(ctx) si existe (una sola vez)
-	// 2. Llama a componente.Render() para obtener el árbol de elementos
-	// 3. Inyecta el HTML resultante y enlaza bindings y eventos
+	// Render injects a component into a parent element.
+	// 1. Calls component.Init(ctx) if present (exactly once)
+	// 2. Calls component.Render() to obtain the element tree
+	// 3. Injects the resulting HTML and wires bindings and events
 	Render(parentID string, component Component) error
 
-	// Append injecta un componente DESPUÉS del último hijo del elemento padre.
-	// Útil para listas dinámicas.
+	// Append injects a component AFTER the last child of the parent element.
+	// Useful for dynamic lists.
 	Append(parentID string, component Component) error
 
-	// OnHashChange registra un listener para cambios en el hash de la URL.
+	// OnHashChange registers a listener for changes in the URL hash.
 	OnHashChange(handler func(hash string))
 
-	// OnScrollCapture registra un listener de scroll en fase de captura sobre el
-	// documento: se dispara para cualquier scroller de la página. Ver la función
-	// de paquete del mismo nombre.
+	// OnScrollCapture registers a scroll listener in capture phase on the
+	// document: fires for any scroller on the page. See the package-level
+	// function of the same name.
 	OnScrollCapture(handler func(scrollTop float64))
 
-	// GetHash devuelve el hash actual de la URL (ej. "#help").
+	// OnUserActivity registers document-level presence listeners in the capture
+	// phase: the handler is called when the user performs an action anywhere on
+	// the page. See the package-level function of the same name.
+	OnUserActivity(handler func())
+
+	// GetHash returns the current URL hash (e.g., "#help").
 	GetHash() string
 
-	// SetHash actualiza el hash de la URL.
+	// SetHash updates the URL hash.
 	SetHash(hash string)
 
 	// Get retrieves an element by ID.

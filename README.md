@@ -172,6 +172,17 @@ and reported nothing. Keyboard input reads through `dom.Key`
 (`KeyArrowLeft/Right/Up/Down`, `KeyHome/End`, `KeyPageUp/PageDown`,
 `KeyEnter`, `KeySpace`, `KeyEscape`, `KeyTab`).
 
+## Page-level listeners
+
+- `dom.OnHashChange(func(hash string))`: URL hash changes (`#hash`).
+- `dom.OnScrollCapture(func(scrollTop float64))`: document capture scroll.
+- `dom.OnUserActivity(func())`: document capture presence pulse (throttled to ~1/s).
+
+```go
+// In Init(ctx) — once. dom reports the pulse; the timeout is yours.
+dom.OnUserActivity(func() { shell.lastSeen = time.Now() })
+```
+
 ## Lifecycle
 
 ```

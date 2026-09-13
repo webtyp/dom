@@ -1225,14 +1225,14 @@ func (d *domWasm) OnHashChange(handler func(hash string)) {
 	js.Global().Get("window").Call("addEventListener", "hashchange", fn)
 }
 
-// OnScrollCapture registra el listener en el documento con capture=true, que es lo
-// que permite ver el scroll de descendientes: el evento scroll no burbujea, pero
-// sí baja por la fase de captura.
+// OnScrollCapture registers the listener on document with capture=true, allowing
+// observation of descendant scrolls: scroll events do not bubble, but propagate
+// down during the capture phase.
 func (d *domWasm) OnScrollCapture(handler func(scrollTop float64)) {
 	fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		target := args[0].Get("target")
-		// document.scrollingElement cuando el que se desplaza es el documento
-		// mismo: ahí el target es el Document, que no tiene scrollTop.
+		// document.scrollingElement when the element scrolling is the document itself:
+		// in that case target is Document, which lacks scrollTop.
 		top := target.Get("scrollTop")
 		if top.IsUndefined() || top.IsNull() {
 			top = js.Global().Get("document").Get("scrollingElement").Get("scrollTop")
@@ -1241,6 +1241,50 @@ func (d *domWasm) OnScrollCapture(handler func(scrollTop float64)) {
 		return nil
 	})
 	js.Global().Get("document").Call("addEventListener", "scroll", fn, true)
+}
+
+// userActivityEvents is the set of events indicating user presence. pointermove
+// and pointerdown cover mouse, touch, and stylus with one listener each — no
+// separate mousemove/touchstart needed. wheel is included because a page scrolled
+// to the bottom continues emitting wheel without scroll: the user is present even
+// if nothing moves.
+//
+// Does NOT include visibilitychange: a visible tab is not a present user, and
+// returning to a tab is not in-page activity. Likewise for window focus/blur.
+var userActivityEvents = []string{"pointermove", "pointerdown", "keydown", "wheel", "scroll"}
+
+// userActivityThrottleMs is the minimum window between handler invocations.
+const userActivityThrottleMs = 1000
+
+// OnUserActivity — see the package-level function of the same name.
+func (d *domWasm) OnUserActivity(handler func()) {
+	// last is per-registration, not singleton: two calls to OnUserActivity
+	// must have independent throttling windows, or each handler would only receive
+	// a fraction of pulses. It is not global mutable state — closes over with listener.
+	last := -float64(userActivityThrottleMs)
+
+	// A single js.Func for all five events so they share the window and a click
+	// during a mouse move doesn't trigger two pulses.
+	fn := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		now := args[0].Get("timeStamp").Float()
+		if now-last < userActivityThrottleMs {
+			return nil
+		}
+		last = now
+		handler()
+		return nil
+	})
+
+	// capture: scroll does not bubble, and capture allows the document to observe any
+	// descendant. passive: handler never calls preventDefault, allowing browser scrolling
+	// without waiting for Go.
+	opts := d.objectCtor.New()
+	opts.Set("capture", true)
+	opts.Set("passive", true)
+
+	for _, ev := range userActivityEvents {
+		d.document.Call("addEventListener", ev, fn, opts)
+	}
 }
 
 // GetHash returns current window.location.hash.

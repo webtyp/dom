@@ -106,24 +106,50 @@ func OnHashChange(handler func(hash string)) {
 	instance.OnHashChange(handler)
 }
 
-// OnScrollCapture registra un listener de scroll en FASE DE CAPTURA sobre el
-// documento, de modo que se dispara para CUALQUIER scroller de la página, no solo
-// para la ventana.
+// OnScrollCapture registers a scroll listener in CAPTURE PHASE on the
+// document, so that it fires for ANY scroller on the page, not just
+// for the window.
 //
-// Existe porque el evento scroll no burbujea: se dispara únicamente en el elemento
-// que se desplazó. Un shell que quiere reaccionar al scroll de su contenido no
-// puede saber qué descendiente de qué componente es el que realmente desborda, y
-// registrar el listener elemento por elemento lo obligaría a conocer el interior
-// de otros paquetes.
+// It exists because the scroll event does not bubble: it fires only on the element
+// that scrolled. A shell that wants to react to the scroll of its content cannot
+// know which descendant of which component actually overflows, and registering
+// the listener element by element would force it to know the internal implementation
+// of other packages.
 //
-// scrollTop es la posición vertical del elemento que disparó el evento. Con varios
-// scrollers en pantalla los valores se intercalan: quien compare posiciones debe
-// tolerarlo con un umbral, no asumir una serie continua.
+// scrollTop is the vertical position of the element that fired the event. With multiple
+// scrollers on screen, values interleave: callers comparing positions must tolerate
+// this with a threshold, rather than assuming a continuous series.
 //
-// No hay forma de darlo de baja: es un listener del documento que vive lo que vive
-// la página.
+// There is no way to unregister it: it is a document listener that lives for the lifetime
+// of the page.
 func OnScrollCapture(handler func(scrollTop float64)) {
 	instance.OnScrollCapture(handler)
+}
+
+// OnUserActivity registers document-level capture-phase listeners that represent
+// "a human is present": pointer movement and press (mouse, finger, or pen), keypress,
+// wheel, and scroll. The handler is called when any of these occur anywhere on the page.
+//
+// It exists for the same reason as OnScrollCapture: presence is a DOCUMENT fact,
+// not an element fact. Attaching listeners to the root element of a component fails in
+// three ways — mouseenter fires ONCE upon crossing the boundary and does not repeat with
+// movement, keydown only arrives if focus is inside that subtree, and anything mounted
+// outside the subtree counts for nothing. All three failure modes disappear in capture phase
+// on the document.
+//
+// The handler receives no parameters: the only datum is that activity occurred. It is called
+// at most once per second — pointermove fires at refresh rate and this is a presence signal,
+// not an event stream. Anything measuring inactivity operates in seconds, so the 1-second
+// window is unnoticeable.
+//
+// dom has no concept of inactivity: there is no timer, no threshold, and no concept of "idle"
+// here. How much time counts as idle, and what happens then, belongs to the consumer.
+//
+// Register ONCE: there is no way to unregister it, these are document listeners that live for
+// the lifetime of the page. Two calls register two sets of listeners, each with its own
+// 1-second throttling window.
+func OnUserActivity(handler func()) {
+	instance.OnUserActivity(handler)
 }
 
 // GetHash gets the current hash.
