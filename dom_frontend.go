@@ -29,7 +29,13 @@ type domWasm struct {
 		id   string
 		keys []string
 	}
-	reconciling        bool   // true while inside reconcileChildren's own call stack — see docs/PLAN.md
+	// reconcileHolds counts deferred reconcile passes still pending per
+	// parent id, so a later pass for the same parent cannot overtake one
+	// already queued — see reconcileChildren.
+	reconcileHolds []struct {
+		id string
+		n  int
+	}
 	currentComponentID string // Tracks the component being mounted
 	pendingEvents      []struct {
 		id      string
@@ -900,10 +906,105 @@ func (d *domWasm) runCleanups(id string) {
 	}
 }
 
+// reconcileChildren applies a reactive children update. It is reached only
+// from a signal subscription (see wireElementBindings' "children" case; rows
+// present at first render are serialized straight into the parent's HTML and
+// never come through here).
+//
+// A pass that only MOVES or DROPS rows already in the DOM runs no component's
+// Init() and cannot block, so it is applied inline — the synchronous update
+// consumers have always been able to read back immediately after Set().
+//
+// A pass that CREATES a row is deferred, as one unit, onto its own goroutine
+// via a microtask. Creating is what runs a new component's Init(), and a
+// reactive update is normally triggered from inside an async callback (a
+// fetch resolution, a DOM event). Running Init() inline there nests it in
+// that callback's own call stack — and an Init() that blocks waiting on a
+// LATER async callback (the ordinary shape of every webtyp.com/view lister:
+// caller.Call(...) then <-ch) can never be satisfied: the callback it waits
+// on cannot run until the current one returns, and the current one cannot
+// return because Init() is blocking it. Under GOOS=js that is a hard
+// deadlock — every goroutine asleep, runtime.wasmExit(0), the whole program
+// silently dead, with no panic text anywhere. The goroutine matters as much
+// as the microtask: without it the blocking Init() merely moves into the
+// microtask's own callback frame and deadlocks there instead.
+//
+// The WHOLE pass is deferred, never just the insertion: the removal sweep at
+// the end compares the parent's live child count against len(newNodes), so
+// insertions and removals must observe the same DOM. Splitting them leaves a
+// replaced node on screen next to its replacement.
+//
+// Once a pass for a parent is pending, later passes for that same parent
+// defer too, even pure moves — otherwise an inline pass would overtake the
+// pending one and be overwritten by it.
 func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
-	d.reconciling = true
-	defer func() { d.reconciling = false }()
+	if !d.createsNode(parentID, newNodes) && !d.reconcilePending(parentID) {
+		d.applyReconcile(parentID, newNodes)
+		return
+	}
+	d.holdReconcile(parentID, 1)
+	deferToMicrotask(func() {
+		defer d.holdReconcile(parentID, -1)
+		d.applyReconcile(parentID, newNodes)
+	})
+}
 
+// createsNode reports whether applying newNodes to parentID would insert a
+// row that is not already mounted — the only case that runs an Init().
+func (d *domWasm) createsNode(parentID string, newNodes []*Element) bool {
+	parent, ok := d.Get(parentID)
+	if !ok {
+		return len(newNodes) > 0
+	}
+	children := parent.(*elementWasm).val.Get("children")
+	n := children.Get("length").Int()
+	for _, node := range newNodes {
+		key := node.key
+		if key == "" {
+			key = node.id
+		}
+		if key == "" {
+			return true // a keyless row is always created
+		}
+		found := false
+		for i := 0; i < n; i++ {
+			if children.Call("item", i).Get("id").String() == key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return true
+		}
+	}
+	return false
+}
+
+// reconcilePending reports whether a deferred pass for parentID has not run
+// yet. holdReconcile keeps the count: a slice, not a map, per dom/AGENTS.md.
+func (d *domWasm) reconcilePending(parentID string) bool {
+	for _, h := range d.reconcileHolds {
+		if h.id == parentID {
+			return h.n > 0
+		}
+	}
+	return false
+}
+
+func (d *domWasm) holdReconcile(parentID string, delta int) {
+	for i := range d.reconcileHolds {
+		if d.reconcileHolds[i].id == parentID {
+			d.reconcileHolds[i].n += delta
+			return
+		}
+	}
+	d.reconcileHolds = append(d.reconcileHolds, struct {
+		id string
+		n  int
+	}{parentID, delta})
+}
+
+func (d *domWasm) applyReconcile(parentID string, newNodes []*Element) {
 	parent, ok := d.Get(parentID)
 	if !ok {
 		return
@@ -974,30 +1075,20 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 				parentVal.Call("insertBefore", found, existingNodes.Call("item", i))
 			}
 		} else {
-			// Create and insert. Deferred to a microtask: Init() (called inside
-			// renderToHTML → initComponent) may block on a channel a LATER async
-			// callback fills — safe only when it is NOT nested inside the async
-			// callback that triggered this reconcile. See docs/PLAN.md (D16-class
-			// deadlock) for the full mechanism and the reproduction this guards.
-			nCopy, parentIDCopy, iCopy := n, parentID, i
-			deferToMicrotask(func() {
-				var comps []Component
-				html := d.renderToHTML(nCopy, &comps, parentIDCopy)
-				tempDiv := d.document.Call("createElement", "div")
-				tempDiv.Set("innerHTML", html)
-				newNode := tempDiv.Get("firstElementChild")
-				existing := parentVal.Call("querySelectorAll", ":scope > *")
-				if iCopy < existing.Get("length").Int() {
-					parentVal.Call("insertBefore", newNode, existing.Call("item", iCopy))
-				} else {
-					parentVal.Call("appendChild", newNode)
-				}
-				d.wireElementBindings(nCopy, parentIDCopy)
-				d.wirePendingEvents()
-				for _, c := range comps {
-					d.mountRecursive(c)
-				}
-			})
+			// Create and insert. Runs inline: the whole pass is already off the
+			// triggering callback's stack (see reconcileChildren), so a
+			// component's Init() reached through renderToHTML can block safely.
+			html := d.renderToHTML(n, &comps, parentID)
+			tempDiv := d.document.Call("createElement", "div")
+			tempDiv.Set("innerHTML", html)
+			newNode := tempDiv.Get("firstElementChild")
+			if i < existingLen {
+				parentVal.Call("insertBefore", newNode, existingNodes.Call("item", i))
+			} else {
+				parentVal.Call("appendChild", newNode)
+			}
+			// Wire bindings and events for the new node only
+			d.wireElementBindings(n, parentID)
 		}
 	}
 

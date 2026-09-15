@@ -100,7 +100,17 @@ Un componente tiene a lo sumo dos métodos, con **roles distintos** (no es repet
   `Show`). Por eso **no** puedes crear los signals aquí: se recrearían en cada montaje.
 - **`Init(ctx)` — la preparación.** **Imperativa** y corre **exactamente una vez**, antes del
   primer render: crea los signals, carga localStorage, hace fetch, registra limpieza con
-  `ctx.OnCleanup`. Es **opcional** — si no hay preparación, no lo escribes. Un `Init()`→`Render()`→inserción DOM de un componente montado de forma reactiva se ejecuta en su propio microtask, desacoplado del callback que desencadenó el montaje, de modo que un `Init()` bloqueante nunca quede anidado dentro del callback asíncrono que lo programó.
+  `ctx.OnCleanup`. Es **opcional** — si no hay preparación, no lo escribes.
+
+  **Cuándo corre, si el montaje es reactivo.** Una actualización de `BindChildren` que
+  **crea** una fila aplica todo el pase (`Init()` → `Render()` → inserción en el DOM) en su
+  propio microtask, sobre su propia goroutine. Así un `Init()` que bloquea esperando una
+  respuesta — `caller.Call(...)` y luego `<-ch`, la forma habitual de cargar datos aquí —
+  nunca queda anidado dentro del callback asíncrono que disparó el montaje: si lo estuviera,
+  esperaría un callback que no puede ejecutarse hasta que el actual retorne, y el actual no
+  puede retornar porque `Init()` lo tiene bloqueado (deadlock duro bajo GOOS=js, sin traza).
+  Un pase que solo **mueve o elimina** filas ya montadas no corre ningún `Init()` y se aplica
+  de forma síncrona, como siempre: el DOM ya refleja el cambio al volver de `Set()`.
 
 En una frase: `Init` prepara el estado (una vez); `Render` lo dibuja (cada vez que se monta).
 
