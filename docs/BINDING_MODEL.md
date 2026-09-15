@@ -100,7 +100,7 @@ Un componente tiene a lo sumo dos métodos, con **roles distintos** (no es repet
   `Show`). Por eso **no** puedes crear los signals aquí: se recrearían en cada montaje.
 - **`Init(ctx)` — la preparación.** **Imperativa** y corre **exactamente una vez**, antes del
   primer render: crea los signals, carga localStorage, hace fetch, registra limpieza con
-  `ctx.OnCleanup`. Es **opcional** — si no hay preparación, no lo escribes.
+  `ctx.OnCleanup`. Es **opcional** — si no hay preparación, no lo escribes. Un `Init()`→`Render()`→inserción DOM de un componente montado de forma reactiva se ejecuta en su propio microtask, desacoplado del callback que desencadenó el montaje, de modo que un `Init()` bloqueante nunca quede anidado dentro del callback asíncrono que lo programó.
 
 En una frase: `Init` prepara el estado (una vez); `Render` lo dibuja (cada vez que se monta).
 

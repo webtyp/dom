@@ -61,6 +61,7 @@ columna "Dónde" lo indica. Las decisiones que no son un simple "está en el pla
 | 6 | **Listas exigen claves correctas.** `BindChildren` reconcilia por `.Key(...)`; una clave mala (índice, duplicada) reusa el nodo equivocado. | `.Key()` por defecto al `id` + warning en `devMode` ante claves duplicadas/ausentes. | ✅ PLAN (Change 3) |
 | 7 | **Semántica de re-montaje sutil.** `Render` corre por montaje; `Init` una vez. Saber qué se re-crea y qué persiste exige tener claro el contrato. | Diagrama de ciclo de vida + tabla del contrato + test de la invariante de `Init`. | ✅ PLAN (Change 6, test 8) |
 | 8 | **Depurar el flujo reactivo es menos lineal.** "¿Quién disparó este parche?" se reconstruye signal→binding, no leyendo una llamada directa. | Trazado reactivo (`Set → patch #id`) bajo `devMode` — el mismo flag runtime que usa `app`. | ✅ PLAN (Change 4) |
+| 9 | **Montaje reactivo asíncrono (microtask).** Si `Init()` realiza operaciones bloqueantes (ej. fetch/canal) y el componente se monta reactivamente desde un callback asíncrono, se ejecuta en un microtask para evitar deadlocks en el bucle de eventos WASM. | Desacoplamiento de la inserción DOM e `Init()` a su propio microtask en `reconcileChildren`. |
 
 ### Sobre #1 — por qué API tipada en vez de un linter
 

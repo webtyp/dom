@@ -29,6 +29,7 @@ type domWasm struct {
 		id   string
 		keys []string
 	}
+	reconciling        bool   // true while inside reconcileChildren's own call stack — see docs/PLAN.md
 	currentComponentID string // Tracks the component being mounted
 	pendingEvents      []struct {
 		id      string
@@ -900,6 +901,9 @@ func (d *domWasm) runCleanups(id string) {
 }
 
 func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
+	d.reconciling = true
+	defer func() { d.reconciling = false }()
+
 	parent, ok := d.Get(parentID)
 	if !ok {
 		return
@@ -970,18 +974,30 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 				parentVal.Call("insertBefore", found, existingNodes.Call("item", i))
 			}
 		} else {
-			// Create and insert
-			html := d.renderToHTML(n, &comps, parentID)
-			tempDiv := d.document.Call("createElement", "div")
-			tempDiv.Set("innerHTML", html)
-			newNode := tempDiv.Get("firstElementChild")
-			if i < existingLen {
-				parentVal.Call("insertBefore", newNode, existingNodes.Call("item", i))
-			} else {
-				parentVal.Call("appendChild", newNode)
-			}
-			// Wire bindings and events for the new node only
-			d.wireElementBindings(n, parentID)
+			// Create and insert. Deferred to a microtask: Init() (called inside
+			// renderToHTML → initComponent) may block on a channel a LATER async
+			// callback fills — safe only when it is NOT nested inside the async
+			// callback that triggered this reconcile. See docs/PLAN.md (D16-class
+			// deadlock) for the full mechanism and the reproduction this guards.
+			nCopy, parentIDCopy, iCopy := n, parentID, i
+			deferToMicrotask(func() {
+				var comps []Component
+				html := d.renderToHTML(nCopy, &comps, parentIDCopy)
+				tempDiv := d.document.Call("createElement", "div")
+				tempDiv.Set("innerHTML", html)
+				newNode := tempDiv.Get("firstElementChild")
+				existing := parentVal.Call("querySelectorAll", ":scope > *")
+				if iCopy < existing.Get("length").Int() {
+					parentVal.Call("insertBefore", newNode, existing.Call("item", iCopy))
+				} else {
+					parentVal.Call("appendChild", newNode)
+				}
+				d.wireElementBindings(nCopy, parentIDCopy)
+				d.wirePendingEvents()
+				for _, c := range comps {
+					d.mountRecursive(c)
+				}
+			})
 		}
 	}
 
