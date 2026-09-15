@@ -2,6 +2,8 @@
 PLAN: "fix: reactive reconcile must not run a newly-mounted child's Init() nested inside the async callback that triggered the mount"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 2311043536796432607
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
