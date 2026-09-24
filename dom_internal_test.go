@@ -117,7 +117,10 @@ func TestInternalWasm(t *testing.T) {
 		var comps2 []Component
 		html2 := d.renderToHTML(parent2, &comps2, "parent-id")
 
-		expected := "<div><div id='vr-1'></div></div>"
+		// data-key mirrors the explicit id: reconcileChildren matches live
+		// children by stamped key, so an explicitly-ided element stays
+		// matchable across renders (the TestBindChildren reorder shape).
+		expected := "<div><div id='vr-1' data-key='vr-1'></div></div>"
 		if html2 != expected {
 			t.Errorf("expected %q, got %q", expected, html2)
 		}

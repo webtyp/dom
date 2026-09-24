@@ -346,6 +346,29 @@ func (d *domWasm) renderToHTML(el *Element, comps *[]Component, ownerID string) 
 	}
 
 	observer := func(elem *Element) {
+		// Persist the reconcile key on the node itself: the DOM does not
+		// retain Element.key, so the next reconcileChildren could only match
+		// by id — and an id is minted per render while a key is stable per
+		// record, which is exactly how rows stopped matching and stale nodes
+		// survived growth. The effective key (key, else id) is what the
+		// reconciler matches on, so it is what gets stamped. SSR never runs
+		// this observer, so String() output stays byte-identical.
+		k := elem.key
+		if k == "" {
+			k = elem.id
+		}
+		if k != "" {
+			stamped := false
+			for _, attr := range elem.attrs {
+				if attr.Key == reconcileKey {
+					stamped = true
+					break
+				}
+			}
+			if !stamped {
+				elem.attrs = append(elem.attrs, fmt.KeyValue{Key: reconcileKey, Value: k})
+			}
+		}
 		for _, ev := range elem.events {
 			d.pendingEvents = append(d.pendingEvents, struct {
 				id      string
@@ -899,29 +922,46 @@ func (d *domWasm) runCleanups(id string) {
 	}
 }
 
+// reconcileKey is the attribute reconcileChildren stamps on every keyed node
+// it creates (see the observer in renderToHTML): the DOM does not retain
+// Element.key, so the next update could only match by id — and an id is
+// minted per render while a key is stable per record, which is exactly how
+// rows stopped matching and stale nodes survived growth.
+const reconcileKey = "data-key"
+
+// reconcileChildKey reads the reconcile key stamped at creation. "" marks a
+// node this reconciler does not manage: static content sharing the parent,
+// or a row whose author gave it neither key nor id (devMode warns about
+// those on the way in). Unmanaged nodes are never matched and never removed:
+// deleting one could erase static chrome, while a keyed list — the only
+// shape with an identity to reconcile — is handled exactly.
+func reconcileChildKey(node js.Value) string {
+	v := node.Call("getAttribute", reconcileKey)
+	if v.IsNull() || v.IsUndefined() {
+		return ""
+	}
+	return v.String()
+}
+
+// reconcileNodeKey derives the identity reconcileChildren matches on: the
+// author's key, else the element id (the explicit-ID shape), else "".
+//
+// The caller mints a volatile id before matching when this returns "", so
+// here it stays pure — no mutation, no allocation — and every loop below can
+// recompute it instead of storing a key slice.
+func reconcileNodeKey(n *Element) string {
+	if n.key != "" {
+		return n.key
+	}
+	return n.id
+}
+
 func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 	parent, ok := d.Get(parentID)
 	if !ok {
 		return
 	}
 	parentVal := parent.(*elementWasm).val
-
-	// Keyed reconcile
-	existingNodes := parentVal.Get("children")
-	existingLen := existingNodes.Get("length").Int()
-
-	// Build map of current children by key
-	currentKeys := make([]struct {
-		key string
-		val js.Value
-	}, existingLen)
-	for i := 0; i < existingLen; i++ {
-		node := existingNodes.Call("item", i)
-		currentKeys[i] = struct {
-			key string
-			val js.Value
-		}{node.Get("id").String(), node}
-	}
 
 	// Dev mode key validation
 	if d.devMode {
@@ -943,59 +983,97 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 		}
 	}
 
-	// Simplistic reconciliation: for each new node, if it exists, move it; otherwise insert it.
-	// Then remove any old nodes that aren't in the new set.
+	// Keyed reconcile: for each new node, reuse the live child stamped with
+	// the same key (moved into place) or create it at its position. Nodes
+	// are matched by key ONLY — never by DOM id, which renderToHTML mints
+	// fresh per render. Linear scans, no maps and no key slices: reconciled
+	// lists hold tens of rows, and maps bloat the TinyGo binary this package
+	// ships in. No per-update heap either: positions before i are final
+	// (placed by earlier iterations and never touched again), so the scan
+	// starts at i — which is also what consumes matches, letting duplicate
+	// keys mount deterministically in order instead of sharing one node.
 	var comps []Component
 	for i, n := range newNodes {
-		key := n.key
-		if key == "" {
-			key = n.id
+		if reconcileNodeKey(n) == "" {
+			n.id = generateID()
 		}
-		if key == "" {
-			key = generateID()
-			n.id = key
-		}
-
+		key := reconcileNodeKey(n)
 		var found js.Value
-		for _, item := range currentKeys {
-			if item.key == key {
-				found = item.val
-				break
+		kids := parentVal.Get("children")
+		for j := i; j < kids.Get("length").Int(); j++ {
+			cand := kids.Call("item", j)
+			if reconcileChildKey(cand) != key {
+				continue
 			}
+			found = cand
+			break
 		}
 
 		if !found.IsUndefined() && !found.IsNull() {
-			// Move to correct position if needed
-			if i < existingLen && !existingNodes.Call("item", i).Equal(found) {
-				parentVal.Call("insertBefore", found, existingNodes.Call("item", i))
+			// Move to position i when it is not already there.
+			live := parentVal.Get("children")
+			if i < live.Get("length").Int() {
+				if !live.Call("item", i).Equal(found) {
+					parentVal.Call("insertBefore", found, live.Call("item", i))
+				}
+			} else {
+				parentVal.Call("appendChild", found)
 			}
 		} else {
-			// Create and insert
+			// Create and insert at position i. renderToHTML stamps the
+			// data-key through the observer, so this node is matchable and
+			// removable from its next update on.
 			html := d.renderToHTML(n, &comps, parentID)
 			tempDiv := d.document.Call("createElement", "div")
 			tempDiv.Set("innerHTML", html)
 			newNode := tempDiv.Get("firstElementChild")
-			if i < existingLen {
-				parentVal.Call("insertBefore", newNode, existingNodes.Call("item", i))
+			live := parentVal.Get("children")
+			if i < live.Get("length").Int() {
+				parentVal.Call("insertBefore", newNode, live.Call("item", i))
 			} else {
 				parentVal.Call("appendChild", newNode)
 			}
-			// Wire bindings and events for the new node only
+			// Wire bindings and events for the new node only. No consumed
+			// bookkeeping: the node lands at position i, so the positional
+			// scan already skips it for every later row.
 			d.wireElementBindings(n, parentID)
 		}
 	}
 
-	// Remove extra nodes. Uses the live child count, not the frozen snapshot
-	// taken before insertions: when an existing node's key does not match any
-	// new node's key, insertBefore creates a sibling without removing the old
-	// one, so the live collection is longer than both existingLen and newNodes.
-	for parentVal.Get("children").Get("length").Int() > len(newNodes) {
-		last := parentVal.Get("lastElementChild")
-		lastID := last.Get("id").String()
-		last.Call("remove")
-		d.cleanupListeners(lastID)
-		d.cleanupSignalSubscriptions(lastID)
-		d.runCleanups(lastID)
+	// Remove live children this update no longer names — stamped nodes only.
+	// Membership, not trim-from-end: trimming the end after appending
+	// destroyed freshly created nodes and kept stale ones whenever the list
+	// grew, surfacing as duplicated rows with unreachable records. New keys
+	// are recomputed per candidate (no stored slice); the loops stay linear.
+	for {
+		kids := parentVal.Get("children")
+		removed := false
+		for j := 0; j < kids.Get("length").Int(); j++ {
+			cand := kids.Call("item", j)
+			k := reconcileChildKey(cand)
+			if k == "" {
+				continue
+			}
+			keep := false
+			for _, n := range newNodes {
+				if reconcileNodeKey(n) == k {
+					keep = true
+					break
+				}
+			}
+			if !keep {
+				id := cand.Get("id").String()
+				cand.Call("remove")
+				d.cleanupListeners(id)
+				d.cleanupSignalSubscriptions(id)
+				d.runCleanups(id)
+				removed = true
+				break
+			}
+		}
+		if !removed {
+			break
+		}
 	}
 
 	d.wirePendingEvents()

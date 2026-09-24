@@ -23,7 +23,8 @@ agent that doesn't know the library from building wrong code. Every API you add 
 - **Docs are minimal "how" instructions, not long skills** — if a rule must be *remembered*, close
   it with types, not prose.
 
-(Ecosystem rationale: `webtyp/app/docs/CONSTRUCTION_HARNESS.md`.)
+(Ecosystem rationale: skill **api-design** — the construction harness, in
+`webtyp/devskills/skills/api-design/SKILL.md`.)
 
 ---
 
