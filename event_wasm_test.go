@@ -98,3 +98,53 @@ func TestOnKeyDownMovesFocus(t *testing.T) {
 		t.Errorf("after Home activeElement is %q, want %q", id, ids[0])
 	}
 }
+
+func TestPointerAndMouseEventsWasm(t *testing.T) {
+	pointerDownFired := false
+	pointerEnterFired := false
+	buttonsVal := 0
+
+	btn := NewElement("button").ID("test-pointer-btn").
+		OnPointerDown(func(e Event) {
+			pointerDownFired = true
+			buttonsVal = e.Buttons()
+			e.ReleasePointerCapture()
+		}).
+		OnPointerEnter(func(e Event) {
+			pointerEnterFired = true
+		})
+
+	if err := Render("app", btn); err != nil {
+		t.Fatalf("Render failed: %v", err)
+	}
+
+	ref, ok := Get("test-pointer-btn")
+	if !ok {
+		t.Fatal("button has no live reference")
+	}
+
+	rawEl := ref.(*elementWasm).val
+
+	// Dispatch pointerdown
+	opts := js.Global().Get("Object").New()
+	opts.Set("bubbles", true)
+	opts.Set("buttons", 1)
+	evtDown := js.Global().Get("Event").New("pointerdown", opts)
+	rawEl.Call("dispatchEvent", evtDown)
+
+	if !pointerDownFired {
+		t.Error("expected pointerdown to fire")
+	}
+	if buttonsVal < 0 {
+		t.Error("expected non-negative buttons")
+	}
+
+	// Dispatch pointerenter
+	evtEnter := js.Global().Get("Event").New("pointerenter", opts)
+	rawEl.Call("dispatchEvent", evtEnter)
+
+	if !pointerEnterFired {
+		t.Error("expected pointerenter to fire")
+	}
+}
+

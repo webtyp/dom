@@ -163,6 +163,16 @@ html.Ul().BindChildren(c.rows)                                          // keyed
 | toggle | `.OnToggle(func(e dom.Event))` |
 | mouseenter | `.OnMouseEnter(func(e dom.Event))` |
 | mouseleave | `.OnMouseLeave(func(e dom.Event))` |
+| mousedown | `.OnMouseDown(func(e dom.Event))` |
+| mouseup | `.OnMouseUp(func(e dom.Event))` |
+| pointerdown | `.OnPointerDown(func(e dom.Event))` |
+| pointerup | `.OnPointerUp(func(e dom.Event))` |
+| pointerenter | `.OnPointerEnter(func(e dom.Event))` |
+| pointerleave | `.OnPointerLeave(func(e dom.Event))` |
+| pointermove | `.OnPointerMove(func(e dom.Event))` |
+| touchstart | `.OnTouchStart(func(e dom.Event))` |
+| touchmove | `.OnTouchMove(func(e dom.Event))` |
+| touchend | `.OnTouchEnd(func(e dom.Event))` |
 | focusin | `.OnFocusIn(func(e dom.Event))` |
 | focusout | `.OnFocusOut(func(e dom.Event))` |
 | keydown | `.OnKeyDown(func(e dom.KeyEvent))` + `e.Key() == dom.KeyArrowLeft` |

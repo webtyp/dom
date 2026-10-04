@@ -48,6 +48,26 @@ func (e *eventWasm) TargetChecked() bool {
 	return v.Bool()
 }
 
+// Buttons returns the bitmask of currently pressed mouse/pointer buttons.
+func (e *eventWasm) Buttons() int {
+	v := e.Get("buttons")
+	if v.IsUndefined() || v.IsNull() {
+		return 0
+	}
+	return v.Int()
+}
+
+// ReleasePointerCapture releases pointer capture on the event target if active.
+func (e *eventWasm) ReleasePointerCapture() {
+	if target := e.Get("target"); !target.IsUndefined() && !target.IsNull() {
+		if pid := e.Get("pointerId"); !pid.IsUndefined() && !pid.IsNull() {
+			if fn := target.Get("releasePointerCapture"); !fn.IsUndefined() && !fn.IsNull() {
+				target.Call("releasePointerCapture", pid)
+			}
+		}
+	}
+}
+
 // Key returns the pressed key: the DOM KeyboardEvent.key verbatim, guarded
 // like every other accessor — a non-keyboard event carries no key and reads
 // as "" rather than panicking.
@@ -58,3 +78,4 @@ func (e *eventWasm) Key() Key {
 	}
 	return Key(v.String())
 }
+

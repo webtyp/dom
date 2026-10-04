@@ -151,6 +151,56 @@ func (b *Element) OnMouseLeave(h func(Event)) *Element {
 	return b.on("mouseleave", h)
 }
 
+// OnMouseDown registers a mousedown handler.
+func (b *Element) OnMouseDown(h func(Event)) *Element {
+	return b.on("mousedown", h)
+}
+
+// OnMouseUp registers a mouseup handler.
+func (b *Element) OnMouseUp(h func(Event)) *Element {
+	return b.on("mouseup", h)
+}
+
+// OnPointerDown registers a pointerdown handler.
+func (b *Element) OnPointerDown(h func(Event)) *Element {
+	return b.on("pointerdown", h)
+}
+
+// OnPointerUp registers a pointerup handler.
+func (b *Element) OnPointerUp(h func(Event)) *Element {
+	return b.on("pointerup", h)
+}
+
+// OnPointerEnter registers a pointerenter handler.
+func (b *Element) OnPointerEnter(h func(Event)) *Element {
+	return b.on("pointerenter", h)
+}
+
+// OnPointerLeave registers a pointerleave handler.
+func (b *Element) OnPointerLeave(h func(Event)) *Element {
+	return b.on("pointerleave", h)
+}
+
+// OnPointerMove registers a pointermove handler.
+func (b *Element) OnPointerMove(h func(Event)) *Element {
+	return b.on("pointermove", h)
+}
+
+// OnTouchStart registers a touchstart handler.
+func (b *Element) OnTouchStart(h func(Event)) *Element {
+	return b.on("touchstart", h)
+}
+
+// OnTouchMove registers a touchmove handler.
+func (b *Element) OnTouchMove(h func(Event)) *Element {
+	return b.on("touchmove", h)
+}
+
+// OnTouchEnd registers a touchend handler.
+func (b *Element) OnTouchEnd(h func(Event)) *Element {
+	return b.on("touchend", h)
+}
+
 // OnFocusIn registers a focusin handler.
 func (b *Element) OnFocusIn(h func(Event)) *Element {
 	return b.on("focusin", h)

@@ -57,6 +57,36 @@ type Reference interface {
 	// OnMouseLeave registers a mouseleave handler on the live node.
 	OnMouseLeave(handler func(event Event))
 
+	// OnMouseDown registers a mousedown handler on the live node.
+	OnMouseDown(handler func(event Event))
+
+	// OnMouseUp registers a mouseup handler on the live node.
+	OnMouseUp(handler func(event Event))
+
+	// OnPointerDown registers a pointerdown handler on the live node.
+	OnPointerDown(handler func(event Event))
+
+	// OnPointerUp registers a pointerup handler on the live node.
+	OnPointerUp(handler func(event Event))
+
+	// OnPointerEnter registers a pointerenter handler on the live node.
+	OnPointerEnter(handler func(event Event))
+
+	// OnPointerLeave registers a pointerleave handler on the live node.
+	OnPointerLeave(handler func(event Event))
+
+	// OnPointerMove registers a pointermove handler on the live node.
+	OnPointerMove(handler func(event Event))
+
+	// OnTouchStart registers a touchstart handler on the live node.
+	OnTouchStart(handler func(event Event))
+
+	// OnTouchMove registers a touchmove handler on the live node.
+	OnTouchMove(handler func(event Event))
+
+	// OnTouchEnd registers a touchend handler on the live node.
+	OnTouchEnd(handler func(event Event))
+
 	// OnFocusIn registers a focusin handler on the live node.
 	OnFocusIn(handler func(event Event))
 

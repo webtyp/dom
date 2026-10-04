@@ -67,23 +67,35 @@ func (e *elementStub) OnBlur(handler func(event Event))       {}
 func (e *elementStub) OnSubmit(handler func(event Event))     {}
 func (e *elementStub) OnToggle(handler func(event Event))     {}
 func (e *elementStub) OnMouseEnter(handler func(event Event)) {}
-func (e *elementStub) OnMouseLeave(handler func(event Event)) {}
-func (e *elementStub) OnFocusIn(handler func(event Event))    {}
-func (e *elementStub) OnFocusOut(handler func(event Event))   {}
-func (e *elementStub) OnKeyDown(handler func(event KeyEvent)) {}
-func (e *elementStub) Focus()                                 {}
-func (e *elementStub) ScrollIntoView()                        {}
-func (e *elementStub) ScrollIntoViewInstant()                 {}
-func (e *elementStub) ScrollsX() bool                         { return false }
+func (e *elementStub) OnMouseLeave(handler func(event Event))   {}
+func (e *elementStub) OnMouseDown(handler func(event Event))    {}
+func (e *elementStub) OnMouseUp(handler func(event Event))      {}
+func (e *elementStub) OnPointerDown(handler func(event Event))  {}
+func (e *elementStub) OnPointerUp(handler func(event Event))    {}
+func (e *elementStub) OnPointerEnter(handler func(event Event)) {}
+func (e *elementStub) OnPointerLeave(handler func(event Event)) {}
+func (e *elementStub) OnPointerMove(handler func(event Event))  {}
+func (e *elementStub) OnTouchStart(handler func(event Event))   {}
+func (e *elementStub) OnTouchMove(handler func(event Event))    {}
+func (e *elementStub) OnTouchEnd(handler func(event Event))     {}
+func (e *elementStub) OnFocusIn(handler func(event Event))      {}
+func (e *elementStub) OnFocusOut(handler func(event Event))     {}
+func (e *elementStub) OnKeyDown(handler func(event KeyEvent))   {}
+func (e *elementStub) Focus()                                   {}
+func (e *elementStub) ScrollIntoView()                          {}
+func (e *elementStub) ScrollIntoViewInstant()                   {}
+func (e *elementStub) ScrollsX() bool                           { return false }
 
 // eventStub is the backend Event: the backend never fires events, so every
 // accessor reads as absent — Key() returns "" like every other missing value
 // in this package ("-" = absent convention).
 type eventStub struct{}
 
-func (e *eventStub) PreventDefault()     {}
-func (e *eventStub) StopPropagation()    {}
-func (e *eventStub) TargetValue() string { return "" }
-func (e *eventStub) TargetID() string    { return "" }
-func (e *eventStub) TargetChecked() bool { return false }
-func (e *eventStub) Key() Key            { return "" }
+func (e *eventStub) PreventDefault()          {}
+func (e *eventStub) StopPropagation()         {}
+func (e *eventStub) TargetValue() string      { return "" }
+func (e *eventStub) TargetID() string         { return "" }
+func (e *eventStub) TargetChecked() bool      { return false }
+func (e *eventStub) Buttons() int             { return 0 }
+func (e *eventStub) ReleasePointerCapture()   {}
+func (e *eventStub) Key() Key                 { return "" }

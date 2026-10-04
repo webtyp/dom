@@ -127,6 +127,56 @@ func (e *elementWasm) OnMouseLeave(handler func(event Event)) {
 	e.on("mouseleave", handler)
 }
 
+// OnMouseDown registers a mousedown handler on the live node.
+func (e *elementWasm) OnMouseDown(handler func(event Event)) {
+	e.on("mousedown", handler)
+}
+
+// OnMouseUp registers a mouseup handler on the live node.
+func (e *elementWasm) OnMouseUp(handler func(event Event)) {
+	e.on("mouseup", handler)
+}
+
+// OnPointerDown registers a pointerdown handler on the live node.
+func (e *elementWasm) OnPointerDown(handler func(event Event)) {
+	e.on("pointerdown", handler)
+}
+
+// OnPointerUp registers a pointerup handler on the live node.
+func (e *elementWasm) OnPointerUp(handler func(event Event)) {
+	e.on("pointerup", handler)
+}
+
+// OnPointerEnter registers a pointerenter handler on the live node.
+func (e *elementWasm) OnPointerEnter(handler func(event Event)) {
+	e.on("pointerenter", handler)
+}
+
+// OnPointerLeave registers a pointerleave handler on the live node.
+func (e *elementWasm) OnPointerLeave(handler func(event Event)) {
+	e.on("pointerleave", handler)
+}
+
+// OnPointerMove registers a pointermove handler on the live node.
+func (e *elementWasm) OnPointerMove(handler func(event Event)) {
+	e.on("pointermove", handler)
+}
+
+// OnTouchStart registers a touchstart handler on the live node.
+func (e *elementWasm) OnTouchStart(handler func(event Event)) {
+	e.on("touchstart", handler)
+}
+
+// OnTouchMove registers a touchmove handler on the live node.
+func (e *elementWasm) OnTouchMove(handler func(event Event)) {
+	e.on("touchmove", handler)
+}
+
+// OnTouchEnd registers a touchend handler on the live node.
+func (e *elementWasm) OnTouchEnd(handler func(event Event)) {
+	e.on("touchend", handler)
+}
+
 // OnFocusIn registers a focusin handler on the live node.
 func (e *elementWasm) OnFocusIn(handler func(event Event)) {
 	e.on("focusin", handler)

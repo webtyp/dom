@@ -14,6 +14,10 @@ type Event interface {
 	// TargetChecked returns the checked status of the event's target element.
 	// Useful for checkbox and radio input elements.
 	TargetChecked() bool
+	// Buttons returns the bitmask of currently pressed mouse/pointer buttons.
+	Buttons() int
+	// ReleasePointerCapture releases pointer capture on the event target if active.
+	ReleasePointerCapture()
 }
 
 // KeyEvent is what a keyboard handler receives: an Event plus the key.
