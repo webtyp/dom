@@ -100,30 +100,32 @@ func TestLifecycle(t *testing.T) {
 
 func TestShow(t *testing.T) {
 	cond := NewBool(false)
-	s := Show(cond, NewElement("span").ID("shown").Text("visible"))
+	calls := 0
+	s := Show(cond, func() *Element {
+		calls++
+		return NewElement("span").ID("shown").Text("visible")
+	})
 	Render("app", s)
 
-	// Mounted while hidden — hidden is display:none, not unmounted.
-	if _, ok := Get("shown"); !ok {
-		t.Fatal("content must stay mounted while hidden")
+	// Unmounted while false — lazy mounting
+	if _, ok := Get("shown"); ok {
+		t.Fatal("content must NOT be mounted while false")
 	}
-	container, ok := Get(s.GetID())
-	if !ok {
-		t.Fatal("Show container not mounted")
+	if calls != 0 {
+		t.Fatalf("expected 0 builder calls while false, got %d", calls)
 	}
-	display := func() string {
-		return container.(*elementWasm).val.Get("style").Get("display").String()
-	}
-	if display() != "none" {
-		t.Errorf("expected display:none at start, got %q", display())
-	}
+
 	cond.Set(true)
-	if display() == "none" {
-		t.Error("expected visible after Set(true)")
+	if _, ok := Get("shown"); !ok {
+		t.Fatal("content must be mounted after Set(true)")
 	}
+	if calls != 1 {
+		t.Fatalf("expected 1 builder call after Set(true), got %d", calls)
+	}
+
 	cond.Set(false)
-	if display() != "none" {
-		t.Error("expected display:none after Set(false)")
+	if _, ok := Get("shown"); ok {
+		t.Fatal("content must be unmounted after Set(false)")
 	}
 }
 

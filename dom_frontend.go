@@ -1082,27 +1082,21 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 	}
 }
 
-// Show keeps content mounted and toggles its visibility with cond.
-// The subtree is built and attached ONCE — a builder re-run that re-attaches
-// captured elements (the v0.12 panic) is unrepresentable: there is no builder.
-// Hidden means inline display:none on the container, so node identity,
-// listeners and signal bindings survive every toggle, and bindings keep
-// patching while hidden — the subtree is current the moment it reappears.
-func Show(cond *SignalBool, content Component) *Element {
-	containerID := generateID()
-	container := NewElement("div").ID(containerID)
-	if !cond.Get() {
-		container.Attr("style", "display:none")
+// Show mounts the subtree returned by build only when cond is true,
+// and unmounts it from the DOM when false.
+// The builder function is invoked lazily on demand.
+func Show(cond *SignalBool, build func() *Element) *Element {
+	nodes := NewNodes()
+	if cond.Get() {
+		nodes.Set([]*Element{build()})
 	}
-	container.Child(content)
+	container := NewElement("div").BindChildren(nodes)
 
 	updater := func() {
-		if ref, ok := instance.Get(containerID); ok {
-			display := ""
-			if !cond.Get() {
-				display = "none"
-			}
-			ref.(*elementWasm).val.Get("style").Set("display", display)
+		if cond.Get() {
+			nodes.Set([]*Element{build()})
+		} else {
+			nodes.Set(nil)
 		}
 	}
 	unsub := cond.subscribe(updater)
@@ -1111,7 +1105,7 @@ func Show(cond *SignalBool, content Component) *Element {
 	instance.(*domWasm).unsubs = append(instance.(*domWasm).unsubs, struct {
 		id    string
 		unsub func()
-	}{containerID, unsub})
+	}{container.GetID(), unsub})
 
 	return container
 }

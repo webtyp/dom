@@ -147,7 +147,7 @@ Binding methods:
 Structural:
 
 ```go
-dom.Show(visible, html.Div().Child(...))  // toggle subtree visibility via display:none
+dom.Show(visible, func() *dom.Element { return html.Div().Child(...) })  // lazy conditional mounting
 html.Ul().BindChildren(c.rows)                                          // keyed list
 ```
 
