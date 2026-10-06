@@ -1,6 +1,7 @@
 package dom
 
 import (
+	"webtyp.com/escape"
 	"webtyp.com/fmt"
 )
 
@@ -72,7 +73,7 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 	b.WriteString("<").WriteString(el.tag)
 	if el.id != "" {
 		claimID(el.id, el.tag)
-		b.WriteString(" id='").WriteString(fmt.Convert(el.id).EscapeAttr()).WriteString("'")
+		b.WriteString(" id='").WriteString(escape.HTML(el.id)).WriteString("'")
 	}
 
 	classes := el.classes
@@ -181,13 +182,13 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 			if i > 0 {
 				b.WriteString(" ")
 			}
-			b.WriteString(fmt.Convert(c).EscapeAttr())
+			b.WriteString(escape.HTML(c))
 		}
 		b.WriteString("'")
 	}
 	for _, attr := range attrs {
-		b.WriteString(" ").WriteString(fmt.Convert(attr.Key).EscapeAttr()).
-			WriteString("='").WriteString(fmt.Convert(attr.Value).EscapeAttr()).WriteString("'")
+		b.WriteString(" ").WriteString(escape.HTML(attr.Key)).
+			WriteString("='").WriteString(escape.HTML(attr.Value)).WriteString("'")
 	}
 	b.WriteString(">")
 	if el.void {
@@ -195,7 +196,7 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 	}
 
 	if hasTextContent {
-		b.WriteString(fmt.Convert(textContent).EscapeHTML())
+		b.WriteString(escape.HTML(textContent))
 	} else {
 		for _, node := range boundChildren {
 			writeElement(b, node, renderChild, obs)
@@ -207,11 +208,11 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 			case TrustedHTML:
 				b.WriteString(string(v))
 			case string:
-				b.WriteString(fmt.Convert(v).EscapeHTML())
+				b.WriteString(escape.HTML(v))
 			case Component:
 				b.WriteString(renderChild(v))
 			default:
-				b.WriteString(fmt.Convert(fmt.Sprint(v)).EscapeHTML())
+				b.WriteString(escape.HTML(fmt.Sprint(v)))
 			}
 		}
 	}
