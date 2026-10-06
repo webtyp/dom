@@ -71,6 +71,27 @@ func (b *Element) For(other *Element) *Element {
 	return b.Attr("for", other.GetID())
 }
 
+// DescribedBy sets aria-describedby to the IDs of others (space-separated, in
+// order), auto-generating each one's ID if it has none — the same minted-ID
+// contract as For. Use it to tie a control to its help text and error message.
+// nil entries are skipped; with no non-nil element the attribute is not set.
+func (b *Element) DescribedBy(others ...*Element) *Element {
+	ids := ""
+	for _, o := range others {
+		if o == nil {
+			continue
+		}
+		if ids != "" {
+			ids += " "
+		}
+		ids += o.GetID()
+	}
+	if ids == "" {
+		return b
+	}
+	return b.Attr("aria-describedby", ids)
+}
+
 // Key sets a stable identity for keyed reconciliation in BindChildren.
 func (b *Element) Key(key string) *Element {
 	b.key = key

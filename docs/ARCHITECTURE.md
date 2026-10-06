@@ -97,6 +97,8 @@ The canonical way to build components is to describe the entire UI and its behav
 1.  **Events in Render**: Attach event listeners directly to elements using the typed methods (`.OnClick(handler)`, `.OnKeyDown(handler)`, …).
 2.  **Bindings in Render**: Use `.BindText()`, `.BindClass()`, etc., to link signals to DOM attributes or content.
 3.  **Type-safe Pairing**: Use `.For(other *Element)` for `<label for>` pairing.
+    Use `.DescribedBy(help, errSpan)` for `aria-describedby`: it references the minted IDs of the
+    describing elements (help text, error message), never a hand-composed id.
 4.  **Autofocus**: Use `.Autofocus()` to focus an element when it first appears.
 
 ```go
