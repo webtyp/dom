@@ -126,3 +126,8 @@ a la celda** (tipo concreto: comparación de punteros normal, sin reflexión).
 Las de `AGENTS.md` (sin `map` — usar `[]fmt.KeyValue` —, tests en `tests/`), más las de este plan:
 nada de `reflect`, nada de `unsafe`, y ningún `==`/`!=`/`switch` entre valores de interfaz con
 operandos no nil.
+
+## Executor notes
+- Added `cell` struct and embedded it in signals.
+- Removed interface equality comparison in `tracker.add` to save binary space in TinyGo.
+- Implemented and ran the prescribed tests. Tested successfully locally.
