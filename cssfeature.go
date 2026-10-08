@@ -37,16 +37,43 @@ func SupportsLightDark() bool {
 		return *supportsLightDarkCache
 	}
 
+	computed := resolveLightDarkProbe()
+	supported := computed == lightProbe || computed == darkProbe
+	supportsLightDarkCache = &supported
+	return supported
+}
+
+// DarkSchemeActive reports whether the page is painting its dark scheme right
+// now — the scheme the browser RESOLVED, not the OS preference: a stylesheet
+// can pin it (css.DefaultLight), and a toggle can flip it with data-theme.
+// Not cached, because that toggle changes the answer.
+//
+// A browser that cannot resolve light-dark() is permanently light (the css
+// fallback), so it reports false.
+func DarkSchemeActive() bool {
+	if !SupportsLightDark() {
+		return false
+	}
+	return resolveLightDarkProbe() == darkProbe
+}
+
+// lightProbe and darkProbe are the two halves of the probe's light-dark():
+// arbitrary colors no stylesheet would use, so the read-back is unambiguous.
+const (
+	lightProbe = "rgb(1, 2, 3)"
+	darkProbe  = "rgb(4, 5, 6)"
+)
+
+// resolveLightDarkProbe applies light-dark(lightProbe, darkProbe) to a
+// briefly attached element and returns the color the browser resolved.
+func resolveLightDarkProbe() string {
 	d := instance.(*domWasm)
 	probe := d.document.Call("createElement", "div")
-	probe.Get("style").Set("cssText", "position:absolute;left:-9999px;background-color:light-dark(rgb(1, 2, 3), rgb(4, 5, 6));")
+	probe.Get("style").Set("cssText", "position:absolute;left:-9999px;background-color:light-dark("+lightProbe+", "+darkProbe+");")
 
 	body := d.document.Get("body")
 	body.Call("appendChild", probe)
 	computed := js.Global().Call("getComputedStyle", probe).Get("backgroundColor").String()
 	body.Call("removeChild", probe)
-
-	supported := computed == "rgb(1, 2, 3)" || computed == "rgb(4, 5, 6)"
-	supportsLightDarkCache = &supported
-	return supported
+	return computed
 }
