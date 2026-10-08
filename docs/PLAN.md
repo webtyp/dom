@@ -1,34 +1,126 @@
-# PLAN — `dom.DarkSchemeActive()`: read the color scheme the page actually resolved
+---
+PLAN: "fix(dom): signal tracker compares by concrete pointer — no reflection in the wasm binary"
+EXECUTOR: jules
+REVIEWER: none
+---
 
-> Master: `/home/cesar/.claude/plans/si-la-ui-se-drifting-treasure.md` (track A, gate C) · 2026-10-08
+# Plan — `tracker.add` sin `==` entre interfaces
 
-## Problem
+> Master: `webtyp/docs/NO_REFLECTION_MASTER_PLAN.md` (ola 1). Sin API pública nueva.
 
-`components/themetoggle` hardcodes `defaultTheme = light` and writes `data-theme` on `Init` even
-when the user never chose one. With `webtyp/css` following the OS by default (and an app able to
-declare `css.DefaultLight()`), the toggle must instead show the scheme in effect — declared by the
-app or taken from the OS — and leave `<html>` untouched until the user clicks. Go code has no way
-to read that today.
+## 1. El problema
 
-## API gate
+`signal.go:171-178`:
 
-1. **Prior art.** Web `matchMedia('(prefers-color-scheme: dark)')` and Flutter
-   `MediaQuery.platformBrightnessOf` report the OS preference only. Android
-   `Configuration.isNightModeActive` reports the mode in effect for the app. Here the effective one
-   is what matters: `css.DefaultLight()` can override the OS, so we read what the browser resolved,
-   not the preference.
-2. **Name.** `dom.DarkSchemeActive()` — "is the dark scheme active?". A bool result, no parameter.
-3. **Ledger.** Concepts +1 · no other way exists to read it from Go · ways to do it 0 net.
-4. **Where.** `cssfeature.go`, which already runs the equivalent probe. DRY: one unexported probe
-   returns the resolved color of `light-dark(rgb(1, 2, 3), rgb(4, 5, 6))`; `SupportsLightDark` is
-   "resolved to either", `DarkSchemeActive` is "resolved to the second" (not cached: the toggle
-   changes it).
-5. **Deletes.** themetoggle's `defaultTheme` and its unconditional `SetDocumentAttr` in `Init`.
+```go
+func (t *tracker) add(s subscribable) {
+	for _, sig := range t.signals {
+		if sig == s {   // == entre dos interfaces
+			return
+		}
+	}
+	t.signals = append(t.signals, s)
+}
+```
 
-## Steps
+En TinyGo, `==` entre interfaces compila a `runtime.interfaceEqual`, que llama a
+`reflectValueEqual(reflectlite.ValueOf(x), reflectlite.ValueOf(y))`. Esto mete
+`internal/reflectlite` (~7 KB) en **todo** binario que use señales, porque `Get()` de cada señal
+llama a `tracker.add`. Medido: quitando este `==`, reflectlite desaparece del login de mjosefa-cms y
+el binario baja 11,5 KB raw.
 
-1. Red test `tests/uc_colorscheme_test.go` (wasm): `color-scheme: light` on `<html>` → false;
-   `color-scheme: dark` → true.
-2. Extract `resolveLightDarkProbe()`; add `DarkSchemeActive()` (false when light-dark() is
-   unsupported: those browsers are permanently light via the css fallback).
-3. `gotest`; `gopush`.
+## 2. La corrección
+
+Las tres señales (`SignalString`, `SignalBool`, `SignalNodes`) repiten los mismos campos `subs`,
+`nextID` y el mismo cuerpo de `subscribe`. Extraer esa parte en una celda común y comparar **punteros
+a la celda** (tipo concreto: comparación de punteros normal, sin reflexión).
+
+1. En `signal.go`:
+
+   ```go
+   // cell is what every signal shares: its subscribers. The tracker compares
+   // signals by *cell — a concrete pointer — because == between interface
+   // values compiles, under TinyGo, to runtime.interfaceEqual, which pulls
+   // internal/reflectlite into every binary that reads a signal.
+   type cell struct {
+   	subs   []sub
+   	nextID uint64
+   }
+
+   func (c *cell) subscribe(fn func()) (unsub func()) {
+   	c.nextID++
+   	id := c.nextID
+   	c.subs = append(c.subs, sub{id: id, fn: fn})
+   	return func() { c.subs = removeSub(c.subs, id) }
+   }
+   ```
+
+2. Cada señal reemplaza sus campos `subs` y `nextID` por `cell` embebida (por valor). Todo uso de
+   `s.subs` sigue compilando por promoción (`notify(s.subs)`).
+3. El `subscribable` y los métodos por tipo:
+
+   ```go
+   type subscribable interface {
+   	subscribe(fn func()) (unsub func())
+   	signalCell() *cell
+   }
+   ```
+
+   En cada tipo (ejemplo `SignalString`; igual en `SignalBool` y `SignalNodes`), conservando la
+   protección contra receptor nil que existe hoy:
+
+   ```go
+   func (s *SignalString) subscribe(fn func()) (unsub func()) {
+   	if s == nil {
+   		return func() {}
+   	}
+   	return s.cell.subscribe(fn)
+   }
+
+   func (s *SignalString) signalCell() *cell {
+   	if s == nil {
+   		return nil
+   	}
+   	return &s.cell
+   }
+   ```
+
+4. `tracker.add`:
+
+   ```go
+   func (t *tracker) add(s subscribable) {
+   	c := s.signalCell()
+   	for _, sig := range t.signals {
+   		if sig.signalCell() == c {
+   			return
+   		}
+   	}
+   	t.signals = append(t.signals, s)
+   }
+   ```
+
+5. Buscar en el paquete cualquier otro `==`/`!=`/`switch` entre valores de interfaz con operandos no
+   nil y aplicar lo mismo. Comando de verificación al final.
+
+## 3. Tests (rojo primero donde aplica)
+
+- `tests/` ya cubre el comportamiento de las señales y `Derive*`: debe seguir verde sin cambios.
+- Agregar en `tests/` un caso: un `DeriveString` que lee **la misma** señal dos veces se recalcula
+  una sola vez cuando esa señal cambia (la deduplicación del tracker sigue funcionando).
+- Guardia de tamaño: si `tinygo` está disponible (si no, `t.Skip`), compilar un `main` mínimo que crea
+  un `NewString` y llama a `Get()` dentro de un `DeriveString`, con
+  `tinygo build -target wasm -opt=z -panic=trap -size=full`, y fallar si la salida contiene
+  `internal/reflectlite`. Este test es rojo hoy.
+
+## 4. Criterios de aceptación
+
+- `grep -n 'sig == s' signal.go` → vacío.
+- `gotest` verde (vet, race, tests, wasm).
+- No hay símbolos exportados nuevos: `git diff | grep '^+func [A-Z]'` → vacío.
+- `tinygo build -target wasm -opt=z -panic=trap -size=full` del test de tamaño: sin `internal/reflectlite`.
+
+## 5. Restricciones
+
+Las de `AGENTS.md` (sin `map` — usar `[]fmt.KeyValue` —, tests en `tests/`), más las de este plan:
+nada de `reflect`, nada de `unsafe`, y ningún `==`/`!=`/`switch` entre valores de interfaz con
+operandos no nil.
