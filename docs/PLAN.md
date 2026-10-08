@@ -2,8 +2,9 @@
 PLAN: "fix(dom): signal tracker compares by concrete pointer — no reflection in the wasm binary"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 4566023438365916372
+PR: https://github.com/webtyp/dom/pull/28
 ---
 
 # Plan — `tracker.add` sin `==` entre interfaces
@@ -126,3 +127,8 @@ a la celda** (tipo concreto: comparación de punteros normal, sin reflexión).
 Las de `AGENTS.md` (sin `map` — usar `[]fmt.KeyValue` —, tests en `tests/`), más las de este plan:
 nada de `reflect`, nada de `unsafe`, y ningún `==`/`!=`/`switch` entre valores de interfaz con
 operandos no nil.
+
+## Executor notes
+- Added `cell` struct and embedded it in signals.
+- Removed interface equality comparison in `tracker.add` to save binary space in TinyGo.
+- Implemented and ran the prescribed tests. Tested successfully locally.

@@ -34,11 +34,26 @@ func removeSub(subs []sub, id uint64) []sub {
 	return subs
 }
 
+// cell is what every signal shares: its subscribers. The tracker compares
+// signals by *cell — a concrete pointer — because == between interface
+// values compiles, under TinyGo, to runtime.interfaceEqual, which pulls
+// internal/reflectlite into every binary that reads a signal.
+type cell struct {
+	subs   []sub
+	nextID uint64
+}
+
+func (c *cell) subscribe(fn func()) (unsub func()) {
+	c.nextID++
+	id := c.nextID
+	c.subs = append(c.subs, sub{id: id, fn: fn})
+	return func() { c.subs = removeSub(c.subs, id) }
+}
+
 // SignalString is an observable string cell. UI text/attr/input state lives here. Explicit Get/Set.
 type SignalString struct {
-	v      string
-	subs   []sub // binding callbacks; invoked on change
-	nextID uint64
+	v string
+	cell
 }
 
 func NewString(v string) *SignalString { return &SignalString{v: v} }
@@ -72,17 +87,20 @@ func (s *SignalString) subscribe(fn func()) (unsub func()) {
 	if s == nil {
 		return func() {}
 	}
-	s.nextID++
-	id := s.nextID
-	s.subs = append(s.subs, sub{id: id, fn: fn})
-	return func() { s.subs = removeSub(s.subs, id) }
+	return s.cell.subscribe(fn)
+}
+
+func (s *SignalString) signalCell() *cell {
+	if s == nil {
+		return nil
+	}
+	return &s.cell
 }
 
 // SignalBool — same shape for class/attr toggles and Show conditions.
 type SignalBool struct {
-	v      bool
-	subs   []sub
-	nextID uint64
+	v bool
+	cell
 }
 
 func NewBool(v bool) *SignalBool { return &SignalBool{v: v} }
@@ -116,17 +134,20 @@ func (s *SignalBool) subscribe(fn func()) (unsub func()) {
 	if s == nil {
 		return func() {}
 	}
-	s.nextID++
-	id := s.nextID
-	s.subs = append(s.subs, sub{id: id, fn: fn})
-	return func() { s.subs = removeSub(s.subs, id) }
+	return s.cell.subscribe(fn)
+}
+
+func (s *SignalBool) signalCell() *cell {
+	if s == nil {
+		return nil
+	}
+	return &s.cell
 }
 
 // SignalNodes is an observable list of rendered rows. No generics; the component builds the Elements.
 type SignalNodes struct {
-	v      []*Element
-	subs   []sub
-	nextID uint64
+	v []*Element
+	cell
 }
 
 func NewNodes(v ...*Element) *SignalNodes { return &SignalNodes{v: v} }
@@ -153,15 +174,20 @@ func (s *SignalNodes) subscribe(fn func()) (unsub func()) {
 	if s == nil {
 		return func() {}
 	}
-	s.nextID++
-	id := s.nextID
-	s.subs = append(s.subs, sub{id: id, fn: fn})
-	return func() { s.subs = removeSub(s.subs, id) }
+	return s.cell.subscribe(fn)
+}
+
+func (s *SignalNodes) signalCell() *cell {
+	if s == nil {
+		return nil
+	}
+	return &s.cell
 }
 
 // subscribable (UNEXPORTED) — its method is unexported, so only dom's own signals satisfy it.
 type subscribable interface {
 	subscribe(fn func()) (unsub func())
+	signalCell() *cell
 }
 
 type tracker struct {
@@ -169,8 +195,9 @@ type tracker struct {
 }
 
 func (t *tracker) add(s subscribable) {
+	c := s.signalCell()
 	for _, sig := range t.signals {
-		if sig == s {
+		if sig.signalCell() == c {
 			return
 		}
 	}
