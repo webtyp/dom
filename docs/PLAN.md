@@ -2,8 +2,9 @@
 PLAN: "fix(dom): signal tracker compares by concrete pointer — no reflection in the wasm binary"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 4566023438365916372
+PR: https://github.com/webtyp/dom/pull/28
 ---
 
 # Plan — `tracker.add` sin `==` entre interfaces
