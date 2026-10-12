@@ -98,3 +98,4 @@ func (e *eventStub) TargetChecked() bool    { return false }
 func (e *eventStub) Buttons() int           { return 0 }
 func (e *eventStub) ReleasePointerCapture() {}
 func (e *eventStub) Key() Key               { return "" }
+func (e *eventStub) ClientY() float64       { return 0 }

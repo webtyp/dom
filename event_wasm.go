@@ -79,3 +79,16 @@ func (e *eventWasm) Key() Key {
 	return Key(v.String())
 }
 
+// ClientY returns the vertical coordinate of the event or primary touch.
+func (e *eventWasm) ClientY() float64 {
+	touches := e.Get("touches")
+	if !touches.IsUndefined() && touches.Length() > 0 {
+		return touches.Index(0).Get("clientY").Float()
+	}
+	v := e.Get("clientY")
+	if v.IsUndefined() || v.IsNull() {
+		return 0
+	}
+	return v.Float()
+}
+

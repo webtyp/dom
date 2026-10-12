@@ -18,6 +18,8 @@ type Event interface {
 	Buttons() int
 	// ReleasePointerCapture releases pointer capture on the event target if active.
 	ReleasePointerCapture()
+	// ClientY returns the vertical coordinate of the event (or primary touch).
+	ClientY() float64
 }
 
 // KeyEvent is what a keyboard handler receives: an Event plus the key.
