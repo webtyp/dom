@@ -162,6 +162,21 @@ func SetHash(hash string) {
 	instance.SetHash(hash)
 }
 
+// GetQuery returns the value of key in the page URL's query string
+// (window.location.search), percent-decoded. ok is false when key is absent;
+// a present but empty parameter ("?k=") returns "", true.
+func GetQuery(key string) (string, bool) { return instance.GetQuery(key) }
+
+// ClearQuery removes the query string from the address bar without reloading
+// or adding a history entry. The path and the hash are kept.
+func ClearQuery() { instance.ClearQuery() }
+
+// NavigatePost leaves the page by submitting a hidden HTML form with method
+// POST to url, with one hidden input per field (Key = name, Value = value).
+// It is how a page hands the browser over to a hosted payment page. Nothing
+// after it runs meaningfully: the page is unloading.
+func NavigatePost(url string, fields []fmt.KeyValue) { instance.NavigatePost(url, fields) }
+
 // SetLog sets the logging function.
 func SetLog(log func(v ...any)) {
 	shared.log = log
