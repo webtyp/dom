@@ -49,6 +49,19 @@ func Show(cond *SignalBool, build func() *Element) *Element {
 func (d *domBackend) GetHash() string     { return "" }
 func (d *domBackend) SetHash(hash string) {}
 
+func (d *domBackend) GetQuery(key string) (string, bool) {
+	return "", false
+}
+
+func (d *domBackend) ClearQuery() {
+	_ = d // no-op
+}
+
+func (d *domBackend) NavigatePost(url string, fields []fmt.KeyValue) {
+	_ = url
+	_ = fields
+}
+
 // elementStub is a no-op implementation of Reference for backend.
 type elementStub struct{}
 

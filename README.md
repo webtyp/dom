@@ -182,8 +182,11 @@ and reported nothing. Keyboard input reads through `dom.Key`
 (`KeyArrowLeft/Right/Up/Down`, `KeyHome/End`, `KeyPageUp/PageDown`,
 `KeyEnter`, `KeySpace`, `KeyEscape`, `KeyTab`).
 
-## Page-level listeners
+## Location & Page-level listeners
 
+- `dom.GetHash()` / `dom.SetHash(hash)`: Read and update URL hash.
+- `dom.GetQuery(key)` / `dom.ClearQuery()`: Read URL query string parameters (percent-decoded) and clear the query string.
+- `dom.NavigatePost(url, fields)`: Leave the page by submitting a hidden POST form (useful for payment gateway hand-offs).
 - `dom.OnHashChange(func(hash string))`: URL hash changes (`#hash`).
 - `dom.OnScrollCapture(func(scrollTop float64))`: document capture scroll.
 - `dom.OnUserActivity(func())`: document capture presence pulse (throttled to ~1/s).

@@ -1,5 +1,7 @@
 package dom
 
+import "webtyp.com/fmt"
+
 // DOM is the main entry point for interacting with the browser.
 // It is designed to be injected into your components.
 type DOM interface {
@@ -31,6 +33,15 @@ type DOM interface {
 
 	// SetHash updates the URL hash.
 	SetHash(hash string)
+
+	// GetQuery returns the value of key in the page URL's query string.
+	GetQuery(key string) (string, bool)
+
+	// ClearQuery removes the query string from the address bar.
+	ClearQuery()
+
+	// NavigatePost leaves the page by submitting a POST form.
+	NavigatePost(url string, fields []fmt.KeyValue)
 
 	// Get retrieves an element by ID.
 	Get(id string) (Reference, bool)

@@ -1200,3 +1200,36 @@ func (d *domWasm) GetHash() string {
 func (d *domWasm) SetHash(hash string) {
 	js.Global().Get("location").Set("hash", hash)
 }
+
+func (d *domWasm) GetQuery(key string) (string, bool) {
+	params := js.Global().Get("URLSearchParams").New(js.Global().Get("location").Get("search"))
+	if !params.Call("has", key).Bool() {
+		return "", false
+	}
+	return params.Call("get", key).String(), true
+}
+
+func (d *domWasm) ClearQuery() {
+	loc := js.Global().Get("location")
+	that := loc.Get("pathname").String() + loc.Get("hash").String()
+	js.Global().Get("history").Call("replaceState", js.Null(), "", that)
+}
+
+func (d *domWasm) NavigatePost(url string, fields []fmt.KeyValue) {
+	doc := js.Global().Get("document")
+	form := doc.Call("createElement", "form")
+	form.Set("method", "post")
+	form.Set("action", url)
+	form.Get("style").Set("display", "none")
+
+	for _, f := range fields {
+		input := doc.Call("createElement", "input")
+		input.Set("type", "hidden")
+		input.Set("name", f.Key)
+		input.Set("value", f.Value)
+		form.Call("appendChild", input)
+	}
+
+	doc.Get("body").Call("appendChild", form)
+	form.Call("submit")
+}
