@@ -2,8 +2,9 @@
 PLAN: "feat(dom): read and clear the URL query, and navigate with a POST form (payment gateway hand-off)"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 13306400392430250073
+PR: https://github.com/webtyp/dom/pull/29
 ---
 
 > This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
