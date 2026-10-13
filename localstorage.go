@@ -19,7 +19,7 @@ func LocalStorageAvailable() bool {
 // Returns ("", error) — storage unavailable.
 func LocalStorageGet(key string) (string, error) {
 	if !LocalStorageAvailable() {
-		return "", Err("localStorage unavailable")
+		return "", Err(msgLocalStorageUnavailable)
 	}
 	v := instance.(*domWasm).localStorage.Call("getItem", key)
 	if v.IsNull() || v.IsUndefined() {
@@ -32,7 +32,7 @@ func LocalStorageGet(key string) (string, error) {
 // Returns error if: storage unavailable, value > lsMaxValue, or budget exceeded.
 func LocalStorageSet(key, value string) error {
 	if !LocalStorageAvailable() {
-		return Err("localStorage unavailable")
+		return Err(msgLocalStorageUnavailable)
 	}
 	if len(value) > lsMaxValue {
 		return Errf("localStorage value too large for key %s", key)
@@ -54,7 +54,7 @@ func LocalStorageSet(key, value string) error {
 // LocalStorageDel removes a key. Returns error if storage unavailable.
 func LocalStorageDel(key string) error {
 	if !LocalStorageAvailable() {
-		return Err("localStorage unavailable")
+		return Err(msgLocalStorageUnavailable)
 	}
 	d := instance.(*domWasm)
 	if existing := d.localStorage.Call("getItem", key); !existing.IsNull() && !existing.IsUndefined() {
@@ -67,7 +67,7 @@ func LocalStorageDel(key string) error {
 // LocalStorageClear removes all keys. Returns error if storage unavailable.
 func LocalStorageClear() error {
 	if !LocalStorageAvailable() {
-		return Err("localStorage unavailable")
+		return Err(msgLocalStorageUnavailable)
 	}
 	d := instance.(*domWasm)
 	d.lsUsedBytes = 0
