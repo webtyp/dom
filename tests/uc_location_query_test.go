@@ -144,3 +144,36 @@ func TestWASM_NavigatePost_NoFields(t *testing.T) {
 		t.Errorf("expected 0 inputs, got %v", js.Global().Get("Object").Call("keys", inputs).Get("length").Int())
 	}
 }
+
+func setupNavigateMock(t *testing.T) (js.Value, func()) {
+	t.Helper()
+	proto := js.Global().Get("HTMLAnchorElement").Get("prototype")
+	originalClick := proto.Get("click")
+
+	mockData := js.Global().Get("Object").New()
+	js.Global().Set("__mockNavigateData", mockData)
+
+	mockClick := js.FuncOf(func(this js.Value, args []js.Value) any {
+		mockData.Set("href", this.Get("href"))
+		return nil
+	})
+
+	proto.Set("click", mockClick)
+
+	return mockData, func() {
+		proto.Set("click", originalClick)
+		js.Global().Delete("__mockNavigateData")
+		mockClick.Release()
+	}
+}
+
+func TestWASM_Navigate_ClicksLink(t *testing.T) {
+	mockData, teardown := setupNavigateMock(t)
+	defer teardown()
+
+	dom.Navigate("https://pay.example.com/checkout?id=7")
+
+	if mockData.Get("href").String() != "https://pay.example.com/checkout?id=7" {
+		t.Errorf("href = %q, want https://pay.example.com/checkout?id=7", mockData.Get("href").String())
+	}
+}
