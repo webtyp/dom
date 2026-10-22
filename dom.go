@@ -177,6 +177,11 @@ func ClearQuery() { instance.ClearQuery() }
 // after it runs meaningfully: the page is unloading.
 func NavigatePost(url string, fields []fmt.KeyValue) { instance.NavigatePost(url, fields) }
 
+// Navigate leaves the page and opens url with a plain GET, as a click on a link would. It is how a
+// page hands the browser over to a hosted payment page that needs no form fields. Nothing after it
+// runs meaningfully: the page is unloading.
+func Navigate(url string) { instance.Navigate(url) }
+
 // SetLog sets the logging function.
 func SetLog(log func(v ...any)) {
 	shared.log = log

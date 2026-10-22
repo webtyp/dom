@@ -62,6 +62,8 @@ func (d *domBackend) NavigatePost(url string, fields []fmt.KeyValue) {
 	_ = fields
 }
 
+func (d *domBackend) Navigate(url string) { _ = url }
+
 // elementStub is a no-op implementation of Reference for backend.
 type elementStub struct{}
 

@@ -3,8 +3,10 @@ PLAN: "feat: Navigate(url) leaves the page with a plain GET"
 TAG: v0.13.27
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 14831625684299623375
+PR: https://github.com/webtyp/dom/pull/30
+REVIEWED_COMMIT: 73a497624fce341d133ced244225976f81365be0
 ---
 
 > Read AGENTS.md at the repo root before any change.

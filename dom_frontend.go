@@ -1233,3 +1233,12 @@ func (d *domWasm) NavigatePost(url string, fields []fmt.KeyValue) {
 	doc.Get("body").Call("appendChild", form)
 	form.Call("submit")
 }
+
+func (d *domWasm) Navigate(url string) {
+	doc := js.Global().Get("document")
+	a := doc.Call("createElement", "a")
+	a.Set("href", url)
+	a.Get("style").Set("display", "none")
+	doc.Get("body").Call("appendChild", a)
+	a.Call("click")
+}

@@ -43,6 +43,9 @@ type DOM interface {
 	// NavigatePost leaves the page by submitting a POST form.
 	NavigatePost(url string, fields []fmt.KeyValue)
 
+	// Navigate leaves the page and opens url with a plain GET.
+	Navigate(url string)
+
 	// Get retrieves an element by ID.
 	Get(id string) (Reference, bool)
 
