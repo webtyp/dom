@@ -187,6 +187,26 @@ func TestBindChildren(t *testing.T) {
 	}
 }
 
+// TestBindChildrenReplacesUnkeyedFirstRows: rows without a key or id drawn at
+// the first render must be replaced by the next Set, not kept beside the new
+// rows. Before the fix they carried no reconcile mark, so the update never
+// removed them (a select showed its prompt option twice).
+func TestBindChildrenReplacesUnkeyedFirstRows(t *testing.T) {
+	rows := NewNodes(NewElement("option").Text("prompt"))
+	list := NewElement("select").ID("unkeyed-select").BindChildren(rows)
+	Render("app", list)
+
+	rows.Set([]*Element{NewElement("option").Text("prompt"), NewElement("option").Text("one")})
+
+	ref, ok := Get("unkeyed-select")
+	if !ok {
+		t.Fatal("unkeyed-select missing")
+	}
+	if n := ref.(*elementWasm).val.Get("children").Get("length").Int(); n != 2 {
+		t.Errorf("select has %d options after Set, want 2 (the first-render row must be replaced)", n)
+	}
+}
+
 // TestBindChildrenInitialRowBindings guards the fix for rows present in a
 // BindChildren signal at FIRST render: they are serialized straight into the
 // parent's HTML and never pass through reconcileChildren, so their own nested

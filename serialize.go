@@ -166,7 +166,19 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 			// The signal owns the element's children, on the server and in the
 			// browser alike: both render exactly sig.Get().
 			if sig, ok := bind.signal.(*SignalNodes); ok {
-				boundChildren = append(boundChildren, sig.Get()...)
+				rows := sig.Get()
+				if hasObserver {
+					// In the browser every row gets an identity, as
+					// reconcileChildren gives the rows it inserts: a row drawn
+					// here without one carries no reconcile mark, so the next
+					// update could never remove it.
+					for _, n := range rows {
+						if n.key == "" && n.id == "" {
+							n.id = generateID()
+						}
+					}
+				}
+				boundChildren = append(boundChildren, rows...)
 			}
 			hasBoundChildren = true
 		}
