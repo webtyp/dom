@@ -2,8 +2,10 @@
 PLAN: "fix!: BindChildren owns the element's children — same output on server and browser; static Child beside it is rejected"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 13188905694099823682
+PR: https://github.com/webtyp/dom/pull/31
+REVIEWED_COMMIT: 31026adf662356fd4e286c4ce0f88cb6108f6253
 ---
 
 > Read AGENTS.md at the repo root before any change.

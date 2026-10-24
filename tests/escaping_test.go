@@ -192,25 +192,27 @@ func TestSSRIdIsStableAcrossRenders(t *testing.T) {
 	}
 }
 
-// TestSSRIgnoresBindChildren proves BindChildren — reactive, client-only —
-// never contributes to SSR output: only the static Child(...) content does.
-// Before the fix, unifying the serializers made SSR also walk the signal's
-// current nodes IN ADDITION to the static children, double-emitting any
-// component that seeds static rows for SSR and wires BindChildren purely for
-// later client-side reactivity (exactly the shape webtyp/components'
-// datatable uses) — and panicking claimID when the duplicated rows carried
-// duplicate ids.
-func TestSSRIgnoresBindChildren(t *testing.T) {
-	staticRow := NewElement("li").Text("static")
-	reactiveRow := NewElement("li").ID("reactive-only").Text("reactive")
-
-	el := NewElement("ul").
-		BindChildren(NewNodes(reactiveRow)).
-		Child(staticRow)
-
+// An element with BindChildren renders exactly what its signal holds, also on
+// the server: the same markup the browser shows before any update.
+func TestBindChildren_ServerRendersTheSignal(t *testing.T) {
+	el := NewElement("ul").BindChildren(NewNodes(NewElement("li").Text("first")))
 	got := el.String()
-	want := "<ul><li>static</li></ul>"
+	want := "<ul><li>first</li></ul>"
 	if got != want {
-		t.Fatalf("want %q, got %q — SSR must render only the static Child(...) content, never the SignalNodes value", want, got)
+		t.Fatalf("want %q, got %q", want, got)
 	}
+}
+
+// Static Child(...) beside BindChildren is a programming error: it used to
+// render twice in the browser (claimID panic) and once on the server.
+func TestBindChildren_StaticChildBesideItPanics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected a panic for Child(...) beside BindChildren")
+		}
+	}()
+	_ = NewElement("ul").
+		BindChildren(NewNodes(NewElement("li").Text("bound"))).
+		Child(NewElement("li").Text("static")).
+		String()
 }

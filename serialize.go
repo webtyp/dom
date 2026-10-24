@@ -9,6 +9,10 @@ type childRenderer func(Component) string
 
 type elementObserver func(*Element)
 
+// errChildrenBesideBinding is the panic text when an element has both BindChildren and
+// static Child(...) content: its signal owns the children.
+const errChildrenBesideBinding = "dom: this element uses BindChildren and also has Child(...) content — the signal owns the children: put the first nodes in the signal (NewNodes(...) or Set(...) before rendering) instead of Child(...)"
+
 // serializeElement renders an Element tree into an HTML string.
 // renderChild resolves Component children to HTML (SSR vs WASM lifecycle tracking).
 // observer is an optional callback invoked for each Element in the tree (used by WASM to collect pending events).
@@ -81,6 +85,7 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 	textContent := ""
 	hasTextContent := false
 	var boundChildren []*Element
+	hasBoundChildren := false
 
 	for _, bind := range el.bindings {
 		switch bind.kind {
@@ -158,22 +163,17 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 			}
 			attrs = append(attrs, fmt.KeyValue{Key: "value", Value: val})
 		case "children":
-			// WASM-only, same reasoning as the id auto-generation above: a
-			// SignalNodes drives reactive updates after the client hydrates,
-			// it has no bearing on SSR. Before unifying the two serializers,
-			// elementToHTML (SSR) never had a "children" case at all — an
-			// element seeding static rows via Child(...) AND wiring
-			// BindChildren for later reactivity (the pattern datatable uses)
-			// rendered only the static rows on SSR. Processing this
-			// unconditionally made SSR render the signal's current nodes on
-			// top of the static ones, double-emitting every row and
-			// panicking claimID on the resulting duplicate ids.
-			if hasObserver {
-				if sig, ok := bind.signal.(*SignalNodes); ok {
-					boundChildren = append(boundChildren, sig.Get()...)
-				}
+			// The signal owns the element's children, on the server and in the
+			// browser alike: both render exactly sig.Get().
+			if sig, ok := bind.signal.(*SignalNodes); ok {
+				boundChildren = append(boundChildren, sig.Get()...)
 			}
+			hasBoundChildren = true
 		}
+	}
+
+	if hasBoundChildren && len(el.children) > 0 {
+		panic(errChildrenBesideBinding)
 	}
 
 	if len(classes) > 0 {
