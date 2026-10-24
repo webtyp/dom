@@ -140,7 +140,7 @@ Binding methods:
 | `.BindClass(class, on)` | class toggle |
 | `.BindAttrBool(name, on)` | boolean attribute (`disabled`, `checked`…) |
 | `.Bind(s)` | two-way `<input>`/`<textarea>` |
-| `.BindChildren(s *SignalNodes)` | keyed child list |
+| `.BindChildren(s *SignalNodes)` | keyed child list; the signal owns the children (no Child(...) beside it) |
 | `.BindTextFunc(fn)` | computed text (auto-tracking) |
 | `.Autofocus()` | focus on first appearance |
 

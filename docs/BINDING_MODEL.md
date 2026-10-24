@@ -263,6 +263,8 @@ func construirFilas(items []string) []*dom.Element {
 `BindChildren` compara por `.Key(...)`: **inserta solo la fila nueva**, no vuelve a dibujar las
 existentes. Si quitas una, solo esa desaparece. Las demás conservan su identidad en el DOM.
 
+La señal es dueña de los hijos: el servidor y el navegador dibujan exactamente lo que contiene. No se agregan hijos con Child(...) al mismo elemento (dom se detiene con un error que lo explica); las filas iniciales se ponen en la señal con NewNodes(...) o Set(...).
+
 ### Subárbol condicional: `Show`
 
 Mostrar un mensaje "No hay tareas" **solo** cuando la lista está vacía:
