@@ -2,6 +2,8 @@
 PLAN: "fix!: BindChildren owns the element's children — same output on server and browser; static Child beside it is rejected"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 13188905694099823682
 ---
 
 > Read AGENTS.md at the repo root before any change.
