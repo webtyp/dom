@@ -142,6 +142,7 @@ Binding methods:
 | `.Bind(s)` | two-way `<input>`/`<textarea>` |
 | `.BindChildren(s *SignalNodes)` | keyed child list; the signal owns the children (no Child(...) beside it) |
 | `.BindTextFunc(fn)` | computed text (auto-tracking) |
+| `.StyleProp(prop, val)` | CSSOM `element.style.setProperty` (CSP-safe, no `style=""`) |
 | `.Autofocus()` | focus on first appearance |
 
 Structural:
@@ -207,7 +208,7 @@ unmount     → run OnCleanup + unsubscribe signals
 
 ## Mount Point
 
-Always `"app"`, never `"body"` — `Render("body", ...)` overwrites `innerHTML` and destroys the SVG sprite injected by `webtyp/sitec`.
+Always `"app"`, never `"body"` — `Render("body", ...)` replaces all children of `body`.
 
 ## Dev Mode
 
@@ -252,6 +253,7 @@ func TestCounter(t *testing.T) {
 - [docs/DESIGN.md](docs/DESIGN.md) — decision record: why signals, no generics, auto-tracking
 - [docs/BINDING_MODEL.md](docs/BINDING_MODEL.md) — mental model with worked examples
 - [docs/diagrams/lifecycle.md](docs/diagrams/lifecycle.md) — Mermaid lifecycle flowchart
+- [docs/diagrams/DOM_MOUNT.md](docs/diagrams/DOM_MOUNT.md) — direct DOM node mount without `innerHTML`
 - [docs/TRADEOFFS.md](docs/TRADEOFFS.md) — fine-grained reactivity vs VDOM trade-offs
 - [AGENTS.md](AGENTS.md) — constraints for agents and contributors
 

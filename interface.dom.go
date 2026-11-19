@@ -76,29 +76,9 @@ type ViewRenderer interface {
 	Render() *Element
 }
 
-// elementNode identifies components that provide direct access to an underlying Element.
-type elementNode interface {
-	Component
-	AsElement() *Element
-}
-
 // Ctx is handed to the Init hook. Register teardown for async resources (timers, websockets).
 type Ctx interface {
 	OnCleanup(fn func())
-}
-
-// initable is unexported but its method Init is exported.
-// The engine asserts component.(initable) while the author only writes
-// func Init(ctx dom.Ctx) and never sees the interface.
-type initable interface {
-	Init(Ctx)
-}
-
-// mountable is unexported but its method Mounted is exported.
-// The engine asserts component.(mountable) while the author only writes
-// func Mounted() and never sees the interface.
-type mountable interface {
-	Mounted()
 }
 
 // eventHandler represents a DOM event handler in the declarative builder.

@@ -11,6 +11,7 @@ type Element struct {
 	key       string
 	classes   []string
 	attrs     []fmt.KeyValue
+	styles    []fmt.KeyValue
 	events    []eventHandler
 	bindings  []binding
 	children  []any
@@ -110,8 +111,26 @@ func (b *Element) Class(class ...string) *Element {
 	return b
 }
 
+const errInlineStyleAttr = "dom: inline style attribute is forbidden under strict CSP; use CSS classes or Element.StyleProp / BindStyleProp"
+
+func isStyleAttr(key string) bool {
+	if len(key) != 5 {
+		return false
+	}
+	return (key[0] == 's' || key[0] == 'S') &&
+		(key[1] == 't' || key[1] == 'T') &&
+		(key[2] == 'y' || key[2] == 'Y') &&
+		(key[3] == 'l' || key[3] == 'L') &&
+		(key[4] == 'e' || key[4] == 'E')
+}
+
 // Attr sets an attribute on the element.
+// Inline "style" attributes are forbidden under strict CSP (style-src 'self'):
+// use CSS classes or StyleProp / BindStyleProp instead.
 func (b *Element) Attr(key, val string) *Element {
+	if isStyleAttr(key) {
+		panic(errInlineStyleAttr)
+	}
 	for i, attr := range b.attrs {
 		if attr.Key == key {
 			b.attrs[i].Value = val
@@ -119,6 +138,23 @@ func (b *Element) Attr(key, val string) *Element {
 		}
 	}
 	b.attrs = append(b.attrs, fmt.KeyValue{Key: key, Value: val})
+	return b
+}
+
+// StyleProp sets a single CSSOM style property (applied via element.style.setProperty
+// in the browser, never emitted as an inline HTML style="..." attribute, so it works
+// under strict Content-Security-Policy style-src 'self').
+func (b *Element) StyleProp(property, value string) *Element {
+	if property == "" {
+		return b
+	}
+	for i, s := range b.styles {
+		if s.Key == property {
+			b.styles[i].Value = value
+			return b
+		}
+	}
+	b.styles = append(b.styles, fmt.KeyValue{Key: property, Value: value})
 	return b
 }
 
@@ -298,8 +334,23 @@ func (b *Element) BindText(s *SignalString) *Element {
 }
 
 // BindAttr links an attribute to a SignalString.
+// Inline "style" attributes are forbidden under strict CSP: use BindStyleProp.
 func (b *Element) BindAttr(name string, s *SignalString) *Element {
+	if isStyleAttr(name) {
+		panic(errInlineStyleAttr)
+	}
 	b.bindings = append(b.bindings, binding{kind: "attr", name: name, signal: s})
+	return b
+}
+
+// BindStyleProp links a CSSOM style property (applied via element.style.setProperty,
+// allowed under strict CSP style-src 'self') to a SignalString. An empty value
+// removes the property via removeProperty.
+func (b *Element) BindStyleProp(property string, s *SignalString) *Element {
+	if property == "" {
+		return b
+	}
+	b.bindings = append(b.bindings, binding{kind: "styleprop", name: property, signal: s})
 	return b
 }
 
@@ -334,8 +385,22 @@ func (b *Element) BindTextFunc(fn func() string) *Element {
 }
 
 // BindAttrFunc links an attribute to a computed string.
+// Inline "style" attributes are forbidden under strict CSP: use BindStylePropFunc.
 func (b *Element) BindAttrFunc(name string, fn func() string) *Element {
+	if isStyleAttr(name) {
+		panic(errInlineStyleAttr)
+	}
 	b.bindings = append(b.bindings, binding{kind: "attr", name: name, fnString: fn})
+	return b
+}
+
+// BindStylePropFunc links a CSSOM style property to a computed string. An empty
+// value removes the property via removeProperty.
+func (b *Element) BindStylePropFunc(property string, fn func() string) *Element {
+	if property == "" {
+		return b
+	}
+	b.bindings = append(b.bindings, binding{kind: "styleprop", name: property, fnString: fn})
 	return b
 }
 

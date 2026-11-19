@@ -18,9 +18,8 @@ There are three primary layers/interfaces:
 
 ### Mount point: always use `"app"`, never `"body"`
 
-`Render(parentID, comp)` sets `parent.innerHTML = html`, replacing ALL existing children of the
-target element. Using `"body"` as the mount point **destroys the SVG sprite** injected inline by
-`webtyp/sitec`, breaking all `<use href="#icon-id">` references.
+`Render(parentID, comp)` clears `parent` with `replaceChildren()` and mounts the component's DOM tree, replacing ALL existing children of the
+target element. Using `"body"` as the mount point overwrites the whole body instead of `#app`.
 
 The `webtyp/sitec` HTML template already injects `<div id="app"></div>` before the `<script>`
 tag. Always mount the root component there:

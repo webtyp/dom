@@ -23,9 +23,3 @@ func TestElementAttrEscaping(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expected, html)
 	}
 }
-
-type mockCSSProvider struct{}
-
-func (m *mockCSSProvider) RenderCSS() any {
-	return nil
-}

@@ -99,18 +99,3 @@ func (e *elementStub) Focus()                                   {}
 func (e *elementStub) ScrollIntoView()                          {}
 func (e *elementStub) ScrollIntoViewInstant()                   {}
 func (e *elementStub) ScrollsX() bool                           { return false }
-
-// eventStub is the backend Event: the backend never fires events, so every
-// accessor reads as absent — Key() returns "" like every other missing value
-// in this package ("-" = absent convention).
-type eventStub struct{}
-
-func (e *eventStub) PreventDefault()        {}
-func (e *eventStub) StopPropagation()       {}
-func (e *eventStub) TargetValue() string    { return "" }
-func (e *eventStub) TargetID() string       { return "" }
-func (e *eventStub) TargetChecked() bool    { return false }
-func (e *eventStub) Buttons() int           { return 0 }
-func (e *eventStub) ReleasePointerCapture() {}
-func (e *eventStub) Key() Key               { return "" }
-func (e *eventStub) ClientY() float64       { return 0 }

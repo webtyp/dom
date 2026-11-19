@@ -25,7 +25,7 @@ func Mount(t *testing.T, id string) {
 	doc := js.Global().Get("document")
 	existing := doc.Call("getElementById", id)
 	if !existing.IsNull() && !existing.IsUndefined() {
-		existing.Set("innerHTML", "")
+		existing.Call("replaceChildren")
 	} else {
 		root := doc.Call("createElement", "div")
 		root.Set("id", id)

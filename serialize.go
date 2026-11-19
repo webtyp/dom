@@ -41,6 +41,147 @@ func serializeElement(el *Element, renderChild childRenderer, observer ...elemen
 	return b.String()
 }
 
+type resolvedElement struct {
+	classes          []string
+	attrs            []fmt.KeyValue
+	styles           []fmt.KeyValue
+	textContent      string
+	hasTextContent   bool
+	boundChildren    []*Element
+	hasBoundChildren bool
+}
+
+// evalBindings resolves el's static attributes/classes together with the initial values of its bindings.
+func evalBindings(el *Element, stampChildIDs bool) resolvedElement {
+	res := resolvedElement{
+		classes: append([]string(nil), el.classes...),
+		attrs:   append([]fmt.KeyValue(nil), el.attrs...),
+		styles:  append([]fmt.KeyValue(nil), el.styles...),
+	}
+
+	for _, bind := range el.bindings {
+		switch bind.kind {
+		case "text":
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalString); ok {
+					res.textContent = sig.Get()
+				}
+			} else if bind.fnString != nil {
+				res.textContent = bind.fnString()
+			}
+			res.hasTextContent = true
+		case "attr":
+			val := ""
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalString); ok {
+					val = sig.Get()
+				}
+			} else if bind.fnString != nil {
+				val = bind.fnString()
+			}
+			found := false
+			for i, attr := range res.attrs {
+				if attr.Key == bind.name {
+					res.attrs[i].Value = val
+					found = true
+					break
+				}
+			}
+			if !found {
+				res.attrs = append(res.attrs, fmt.KeyValue{Key: bind.name, Value: val})
+			}
+		case "styleprop":
+			val := ""
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalString); ok {
+					val = sig.Get()
+				}
+			} else if bind.fnString != nil {
+				val = bind.fnString()
+			}
+			found := false
+			for i, st := range res.styles {
+				if st.Key == bind.name {
+					res.styles[i].Value = val
+					found = true
+					break
+				}
+			}
+			if !found {
+				res.styles = append(res.styles, fmt.KeyValue{Key: bind.name, Value: val})
+			}
+		case "class":
+			on := false
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalBool); ok {
+					on = sig.Get()
+				}
+			} else if bind.fnBool != nil {
+				on = bind.fnBool()
+			}
+			if on {
+				res.classes = append(res.classes, bind.name)
+			}
+		case "attrbool":
+			on := false
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalBool); ok {
+					on = sig.Get()
+				}
+			} else if bind.fnBool != nil {
+				on = bind.fnBool()
+			}
+			if on {
+				res.attrs = append(res.attrs, fmt.KeyValue{Key: bind.name, Value: ""})
+			}
+		case "state":
+			on := false
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalBool); ok {
+					on = sig.Get()
+				}
+			} else if bind.fnBool != nil {
+				on = bind.fnBool()
+			}
+			if on {
+				res.attrs = append(res.attrs, fmt.KeyValue{Key: bind.state.Key(), Value: bind.state.Value()})
+			}
+		case "value":
+			val := ""
+			if bind.signal != nil {
+				if sig, ok := bind.signal.(*SignalString); ok {
+					val = sig.Get()
+				}
+			}
+			res.attrs = append(res.attrs, fmt.KeyValue{Key: "value", Value: val})
+		case "children":
+			// The signal owns the element's children, on the server and in the
+			// browser alike: both render exactly sig.Get().
+			if sig, ok := bind.signal.(*SignalNodes); ok {
+				rows := sig.Get()
+				if stampChildIDs {
+					// In the browser every row gets an identity, as
+					// reconcileChildren gives the rows it inserts: a row drawn
+					// here without one carries no reconcile mark, so the next
+					// update could never remove it.
+					for _, n := range rows {
+						if n.key == "" && n.id == "" {
+							n.id = generateID()
+						}
+					}
+				}
+				res.boundChildren = append(res.boundChildren, rows...)
+			}
+			res.hasBoundChildren = true
+		}
+	}
+
+	if res.hasBoundChildren && len(el.children) > 0 {
+		panic(errChildrenBesideBinding)
+	}
+	return res
+}
+
 // writeElement appends el's HTML to b. obs is nil on the SSR path and
 // non-nil on WASM (see serializeElement) — hasObserver below is exactly the
 // old "was an observer passed" check, just derived from a plain nil check
@@ -80,117 +221,11 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 		b.WriteString(" id='").WriteString(escape.HTML(el.id)).WriteString("'")
 	}
 
-	classes := el.classes
-	attrs := el.attrs
-	textContent := ""
-	hasTextContent := false
-	var boundChildren []*Element
-	hasBoundChildren := false
+	res := evalBindings(el, hasObserver)
 
-	for _, bind := range el.bindings {
-		switch bind.kind {
-		case "text":
-			if bind.signal != nil {
-				if sig, ok := bind.signal.(*SignalString); ok {
-					textContent = sig.Get()
-				}
-			} else if bind.fnString != nil {
-				textContent = bind.fnString()
-			}
-			hasTextContent = true
-		case "attr":
-			val := ""
-			if bind.signal != nil {
-				if sig, ok := bind.signal.(*SignalString); ok {
-					val = sig.Get()
-				}
-			} else if bind.fnString != nil {
-				val = bind.fnString()
-			}
-			found := false
-			for i, attr := range attrs {
-				if attr.Key == bind.name {
-					attrs[i].Value = val
-					found = true
-					break
-				}
-			}
-			if !found {
-				attrs = append(attrs, fmt.KeyValue{Key: bind.name, Value: val})
-			}
-		case "class":
-			on := false
-			if bind.signal != nil {
-				if sig, ok := bind.signal.(*SignalBool); ok {
-					on = sig.Get()
-				}
-			} else if bind.fnBool != nil {
-				on = bind.fnBool()
-			}
-			if on {
-				classes = append(classes, bind.name)
-			}
-		case "attrbool":
-			on := false
-			if bind.signal != nil {
-				if sig, ok := bind.signal.(*SignalBool); ok {
-					on = sig.Get()
-				}
-			} else if bind.fnBool != nil {
-				on = bind.fnBool()
-			}
-			if on {
-				attrs = append(attrs, fmt.KeyValue{Key: bind.name, Value: ""})
-			}
-		case "state":
-			on := false
-			if bind.signal != nil {
-				if sig, ok := bind.signal.(*SignalBool); ok {
-					on = sig.Get()
-				}
-			} else if bind.fnBool != nil {
-				on = bind.fnBool()
-			}
-			if on {
-				attrs = append(attrs, fmt.KeyValue{Key: bind.state.Key(), Value: bind.state.Value()})
-			}
-		case "value":
-			val := ""
-			if bind.signal != nil {
-				if sig, ok := bind.signal.(*SignalString); ok {
-					val = sig.Get()
-				}
-			}
-			attrs = append(attrs, fmt.KeyValue{Key: "value", Value: val})
-		case "children":
-			// The signal owns the element's children, on the server and in the
-			// browser alike: both render exactly sig.Get().
-			if sig, ok := bind.signal.(*SignalNodes); ok {
-				rows := sig.Get()
-				if hasObserver {
-					// In the browser every row gets an identity, as
-					// reconcileChildren gives the rows it inserts: a row drawn
-					// here without one carries no reconcile mark, so the next
-					// update could never remove it.
-					for _, n := range rows {
-						if n.key == "" && n.id == "" {
-							n.id = generateID()
-						}
-					}
-				}
-				boundChildren = append(boundChildren, rows...)
-			}
-			hasBoundChildren = true
-		}
-	}
-
-	if hasBoundChildren && len(el.children) > 0 {
-		panic(errChildrenBesideBinding)
-	}
-
-	if len(classes) > 0 {
+	if len(res.classes) > 0 {
 		b.WriteString(" class='")
-		for i, c := range classes {
+		for i, c := range res.classes {
 			if i > 0 {
 				b.WriteString(" ")
 			}
@@ -198,7 +233,7 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 		}
 		b.WriteString("'")
 	}
-	for _, attr := range attrs {
+	for _, attr := range res.attrs {
 		b.WriteString(" ").WriteString(escape.HTML(attr.Key)).
 			WriteString("='").WriteString(escape.HTML(attr.Value)).WriteString("'")
 	}
@@ -207,10 +242,10 @@ func writeElement(b *fmt.Builder, el *Element, renderChild childRenderer, obs el
 		return
 	}
 
-	if hasTextContent {
-		b.WriteString(escape.HTML(textContent))
+	if res.hasTextContent {
+		b.WriteString(escape.HTML(res.textContent))
 	} else {
-		for _, node := range boundChildren {
+		for _, node := range res.boundChildren {
 			writeElement(b, node, renderChild, obs)
 		}
 		for _, child := range el.children {

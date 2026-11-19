@@ -192,13 +192,6 @@ func SetDevMode(on bool) {
 	shared.devMode = on
 }
 
-// injectComponentID sets the component ID on the root element if not already set.
-func injectComponentID(el *Element, id string) {
-	if el.id == "" {
-		el.id = id
-	}
-}
-
 // Log provides logging functionality using the log function passed to New.
 func (t *tinyDOM) Log(v ...any) {
 	if t.log != nil {

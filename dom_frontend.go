@@ -8,6 +8,33 @@ import (
 	"webtyp.com/fmt"
 )
 
+// elementNode identifies components that provide direct access to an underlying Element.
+type elementNode interface {
+	Component
+	AsElement() *Element
+}
+
+// initable is unexported but its method Init is exported.
+// The engine asserts component.(initable) while the author only writes
+// func Init(ctx dom.Ctx) and never sees the interface.
+type initable interface {
+	Init(Ctx)
+}
+
+// mountable is unexported but its method Mounted is exported.
+// The engine asserts component.(mountable) while the author only writes
+// func Mounted() and never sees the interface.
+type mountable interface {
+	Mounted()
+}
+
+// injectComponentID sets the component ID on the root element if not already set.
+func injectComponentID(el *Element, id string) {
+	if el.id == "" {
+		el.id = id
+	}
+}
+
 // domWasm is the WASM implementation of the DOM interface.
 type domWasm struct {
 	*tinyDOM
@@ -171,24 +198,24 @@ func (d *domWasm) Render(parentID string, component Component) error {
 
 	d.initComponent(component)
 
-	// Render to HTML and collect child components
+	// Render via direct DOM node construction (no innerHTML for *Element trees).
 	var children []Component
-	var html string
-
 	var renderedRoot *Element
+	var renderedNode js.Value
+	var fallbackHTML string
 	if vr, ok := component.(ViewRenderer); ok {
 		root := vr.Render()
 		injectComponentID(root, component.GetID())
-		html = d.renderToHTML(root, &children, component.GetID())
+		renderedNode = d.buildNode(root, &children, component.GetID(), false)
 		renderedRoot = root
 	} else if en, ok := component.(elementNode); ok {
 		renderedRoot = en.AsElement()
-		html = d.renderToHTML(renderedRoot, &children, component.GetID())
+		renderedNode = d.buildNode(renderedRoot, &children, component.GetID(), false)
 	} else if el, ok := component.(*Element); ok {
 		renderedRoot = el
-		html = d.renderToHTML(renderedRoot, &children, component.GetID())
+		renderedNode = d.buildNode(renderedRoot, &children, component.GetID(), false)
 	} else {
-		html = component.String()
+		fallbackHTML = component.String()
 	}
 
 	parent := d.getElement(parentID)
@@ -199,7 +226,12 @@ func (d *domWasm) Render(parentID string, component Component) error {
 	// Clean up any existing components in this parent before wiping content.
 	d.cleanupChildren(parentID)
 
-	parent.Set("innerHTML", html)
+	parent.Call("replaceChildren")
+	if !renderedNode.IsUndefined() && !renderedNode.IsNull() {
+		parent.Call("appendChild", renderedNode)
+	} else if fallbackHTML != "" {
+		d.setTrustedHTML(parent, fallbackHTML)
+	}
 
 	// Update lifecycle maps
 	d.trackComponent(component)
@@ -255,28 +287,35 @@ func (d *domWasm) Append(parentID string, component Component) error {
 	d.initComponent(component)
 
 	var children []Component
-	var html string
 	var appendRoot *Element
+	var appendNode js.Value
+	var fallbackHTML string
 	if vr, ok := component.(ViewRenderer); ok {
 		root := vr.Render()
 		injectComponentID(root, component.GetID())
-		html = d.renderToHTML(root, &children, component.GetID())
+		appendNode = d.buildNode(root, &children, component.GetID(), false)
 		appendRoot = root
 	} else if en, ok := component.(elementNode); ok {
 		appendRoot = en.AsElement()
-		html = d.renderToHTML(appendRoot, &children, component.GetID())
+		appendNode = d.buildNode(appendRoot, &children, component.GetID(), false)
 	} else if el, ok := component.(*Element); ok {
 		appendRoot = el
-		html = d.renderToHTML(appendRoot, &children, component.GetID())
+		appendNode = d.buildNode(appendRoot, &children, component.GetID(), false)
 	} else {
-		html = component.String()
+		fallbackHTML = component.String()
 	}
 
 	parent := d.getElement(parentID)
 	if parent.IsNull() || parent.IsUndefined() {
 		return fmt.Errf("parent element not found: %s", parentID)
 	}
-	parent.Call("insertAdjacentHTML", "beforeend", html)
+	if !appendNode.IsUndefined() && !appendNode.IsNull() {
+		parent.Call("appendChild", appendNode)
+	} else if fallbackHTML != "" {
+		tpl := d.document.Call("createElement", "template")
+		d.setTrustedHTML(tpl, fallbackHTML)
+		parent.Call("appendChild", tpl.Get("content"))
+	}
 
 	d.trackComponent(component)
 	if appendRoot != nil {
@@ -299,6 +338,196 @@ func (d *domWasm) Append(parentID string, component Component) error {
 	}
 
 	return nil
+}
+
+const (
+	svgNamespace        = "http://www.w3.org/2000/svg"
+	trustedPolicyName   = "webtyp-dom"
+	trustedPolicyGlobal = "__webtypDomPolicy"
+)
+
+// setTrustedHTML assigns html to target.innerHTML through a single Trusted Types
+// policy when the browser enforces require-trusted-types-for 'script'.
+func (d *domWasm) setTrustedHTML(target js.Value, html string) {
+	tt := js.Global().Get("trustedTypes")
+	if !tt.IsUndefined() && !tt.IsNull() && !tt.Get("createPolicy").IsUndefined() {
+		pol := js.Global().Get(trustedPolicyGlobal)
+		if pol.IsUndefined() || pol.IsNull() {
+			opts := d.objectCtor.New()
+			opts.Set("createHTML", js.FuncOf(func(_ js.Value, args []js.Value) any {
+				if len(args) > 0 {
+					return args[0].String()
+				}
+				return ""
+			}))
+			pol = tt.Call("createPolicy", trustedPolicyName, opts)
+			js.Global().Set(trustedPolicyGlobal, pol)
+		}
+		target.Set("innerHTML", pol.Call("createHTML", html))
+		return
+	}
+	target.Set("innerHTML", html)
+}
+
+func (d *domWasm) observeElement(elem *Element, ownerID string) {
+	// Persist the reconcile key on the node itself: the DOM does not
+	// retain Element.key, so the next reconcileChildren could only match
+	// by id — and an id is minted per render while a key is stable per
+	// record, which is exactly how rows stopped matching and stale nodes
+	// survived growth. The effective key (key, else id) is what the
+	// reconciler matches on, so it is what gets stamped. SSR never runs
+	// this observer, so String() output stays byte-identical.
+	k := elem.key
+	if k == "" {
+		k = elem.id
+	}
+	if k != "" {
+		stamped := false
+		for _, attr := range elem.attrs {
+			if attr.Key == reconcileKey {
+				stamped = true
+				break
+			}
+		}
+		if !stamped {
+			elem.attrs = append(elem.attrs, fmt.KeyValue{Key: reconcileKey, Value: k})
+		}
+	}
+	for _, ev := range elem.events {
+		d.pendingEvents = append(d.pendingEvents, struct {
+			id      string
+			ownerID string
+			name    string
+			handler func(Event)
+		}{elem.id, ownerID, ev.Name, ev.Handler})
+	}
+}
+
+func (d *domWasm) buildNode(el *Element, comps *[]Component, ownerID string, svgNS bool) js.Value {
+	if el == nil {
+		if d.devMode {
+			d.Log("webtyp/dom: nil Element encountered during buildNode (pointer-embedded Element mistake?)")
+		}
+		return js.Undefined()
+	}
+	if el.tag == "" {
+		return js.Undefined()
+	}
+	beginPass()
+	defer endPass()
+
+	if (len(el.events) > 0 || len(el.bindings) > 0 || el.autofocus || el.key != "") && el.id == "" {
+		el.id = generateID()
+	}
+	d.observeElement(el, ownerID)
+
+	isSVG := svgNS || el.tag == "svg"
+	var node js.Value
+	if isSVG {
+		node = d.document.Call("createElementNS", svgNamespace, el.tag)
+	} else {
+		node = d.document.Call("createElement", el.tag)
+	}
+
+	if el.id != "" {
+		claimID(el.id, el.tag)
+		node.Call("setAttribute", "id", el.id)
+	}
+
+	res := evalBindings(el, true)
+
+	if len(res.classes) > 0 {
+		node.Call("setAttribute", "class", fmt.JoinSlice(res.classes, " "))
+	}
+	for _, attr := range res.attrs {
+		node.Call("setAttribute", attr.Key, attr.Value)
+	}
+	if len(res.styles) > 0 {
+		styleObj := node.Get("style")
+		for _, s := range res.styles {
+			if s.Value != "" {
+				styleObj.Call("setProperty", s.Key, s.Value)
+			}
+		}
+	}
+
+	if el.void {
+		return node
+	}
+
+	if res.hasTextContent {
+		node.Set("textContent", res.textContent)
+		return node
+	}
+
+	childSVGNS := isSVG && el.tag != "foreignObject"
+	for _, childNode := range res.boundChildren {
+		c := d.buildNode(childNode, comps, ownerID, childSVGNS)
+		if !c.IsUndefined() && !c.IsNull() {
+			node.Call("appendChild", c)
+		}
+	}
+
+	for _, child := range el.children {
+		switch v := child.(type) {
+		case *Element:
+			c := d.buildNode(v, comps, ownerID, childSVGNS)
+			if !c.IsUndefined() && !c.IsNull() {
+				node.Call("appendChild", c)
+			}
+		case TrustedHTML:
+			tpl := d.document.Call("createElement", "template")
+			d.setTrustedHTML(tpl, string(v))
+			node.Call("appendChild", tpl.Get("content"))
+		case string:
+			node.Call("appendChild", d.document.Call("createTextNode", v))
+		case Component:
+			c := d.buildComponentNode(v, comps, childSVGNS)
+			if !c.IsUndefined() && !c.IsNull() {
+				node.Call("appendChild", c)
+			}
+		default:
+			node.Call("appendChild", d.document.Call("createTextNode", fmt.Sprint(v)))
+		}
+	}
+	return node
+}
+
+func (d *domWasm) buildComponentNode(v Component, comps *[]Component, svgNS bool) js.Value {
+	if v == nil {
+		if d.devMode {
+			d.Log("webtyp/dom: nil Component encountered (pointer-embedded Element mistake?)")
+		}
+		return js.Undefined()
+	}
+	*comps = append(*comps, v)
+	if v.GetID() == "" {
+		v.SetID(generateID())
+	}
+	childID := v.GetID()
+	d.initComponent(v)
+
+	if vr, ok := v.(ViewRenderer); ok {
+		root := vr.Render()
+		injectComponentID(root, childID)
+		n := d.buildNode(root, comps, childID, svgNS)
+		d.storeRoot(childID, root)
+		return n
+	} else if en, ok := v.(elementNode); ok {
+		root := en.AsElement()
+		injectComponentID(root, childID)
+		n := d.buildNode(root, comps, childID, svgNS)
+		d.storeRoot(childID, root)
+		return n
+	} else if el, ok := v.(*Element); ok {
+		injectComponentID(el, childID)
+		n := d.buildNode(el, comps, childID, svgNS)
+		d.storeRoot(childID, el)
+		return n
+	}
+	tpl := d.document.Call("createElement", "template")
+	d.setTrustedHTML(tpl, v.String())
+	return tpl.Get("content")
 }
 
 func (d *domWasm) renderToHTML(el *Element, comps *[]Component, ownerID string) string {
@@ -346,37 +575,7 @@ func (d *domWasm) renderToHTML(el *Element, comps *[]Component, ownerID string) 
 	}
 
 	observer := func(elem *Element) {
-		// Persist the reconcile key on the node itself: the DOM does not
-		// retain Element.key, so the next reconcileChildren could only match
-		// by id — and an id is minted per render while a key is stable per
-		// record, which is exactly how rows stopped matching and stale nodes
-		// survived growth. The effective key (key, else id) is what the
-		// reconciler matches on, so it is what gets stamped. SSR never runs
-		// this observer, so String() output stays byte-identical.
-		k := elem.key
-		if k == "" {
-			k = elem.id
-		}
-		if k != "" {
-			stamped := false
-			for _, attr := range elem.attrs {
-				if attr.Key == reconcileKey {
-					stamped = true
-					break
-				}
-			}
-			if !stamped {
-				elem.attrs = append(elem.attrs, fmt.KeyValue{Key: reconcileKey, Value: k})
-			}
-		}
-		for _, ev := range elem.events {
-			d.pendingEvents = append(d.pendingEvents, struct {
-				id      string
-				ownerID string
-				name    string
-				handler func(Event)
-			}{elem.id, ownerID, ev.Name, ev.Handler})
-		}
+		d.observeElement(elem, ownerID)
 	}
 
 	return serializeElement(el, renderChild, observer)
@@ -749,6 +948,26 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 					d.Log("[dom] patch #"+el.id+" attr "+b.name+":", val)
 				}
 			}
+		case "styleprop":
+			updater = func() {
+				val := ""
+				if b.signal != nil {
+					if sig, ok := b.signal.(*SignalString); ok {
+						val = sig.Get()
+					}
+				} else if b.fnString != nil {
+					val = b.fnString()
+				}
+				styleObj := ref.(*elementWasm).val.Get("style")
+				if val == "" {
+					styleObj.Call("removeProperty", b.name)
+				} else {
+					styleObj.Call("setProperty", b.name, val)
+				}
+				if d.devMode {
+					d.Log("[dom] patch #"+el.id+" style "+b.name+":", val)
+				}
+			}
 		case "class":
 			updater = func() {
 				on := false
@@ -1020,13 +1239,8 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 				parentVal.Call("appendChild", found)
 			}
 		} else {
-			// Create and insert at position i. renderToHTML stamps the
-			// data-key through the observer, so this node is matchable and
-			// removable from its next update on.
-			html := d.renderToHTML(n, &comps, parentID)
-			tempDiv := d.document.Call("createElement", "div")
-			tempDiv.Set("innerHTML", html)
-			newNode := tempDiv.Get("firstElementChild")
+			// Create and insert at position i via buildNode (no innerHTML).
+			newNode := d.buildNode(n, &comps, parentID, false)
 			live := parentVal.Get("children")
 			if i < live.Get("length").Int() {
 				parentVal.Call("insertBefore", newNode, live.Call("item", i))

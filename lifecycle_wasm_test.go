@@ -336,7 +336,9 @@ type scrollableItem struct {
 
 func (s *scrollableItem) Render() *Element {
 	return NewElement("div").ID("item-to-scroll").
-		Attr("style", "width: 200px; height: 100px; display: inline-block;")
+		StyleProp("width", "200px").
+		StyleProp("height", "100px").
+		StyleProp("display", "inline-block")
 }
 
 type deckComp struct {
@@ -356,9 +358,15 @@ func (d *deckComp) Children() []Component {
 
 func (d *deckComp) Render() *Element {
 	return NewElement("div").ID("deck-scroller").
-		Attr("style", "width: 100px; height: 100px; overflow-x: auto; white-space: nowrap;").
+		StyleProp("width", "100px").
+		StyleProp("height", "100px").
+		StyleProp("overflow-x", "auto").
+		StyleProp("white-space", "nowrap").
 		Child(
-			NewElement("div").Attr("style", "width: 50px; height: 100px; display: inline-block;"),
+			NewElement("div").
+				StyleProp("width", "50px").
+				StyleProp("height", "100px").
+				StyleProp("display", "inline-block"),
 			d.child,
 		)
 }
@@ -448,9 +456,15 @@ func (d *deckCompInstant) Children() []Component {
 
 func (d *deckCompInstant) Render() *Element {
 	return NewElement("div").ID("deck-scroller-instant").
-		Attr("style", "width: 100px; height: 100px; overflow-x: auto; white-space: nowrap;").
+		StyleProp("width", "100px").
+		StyleProp("height", "100px").
+		StyleProp("overflow-x", "auto").
+		StyleProp("white-space", "nowrap").
 		Child(
-			NewElement("div").Attr("style", "width: 50px; height: 100px; display: inline-block;"),
+			NewElement("div").
+				StyleProp("width", "50px").
+				StyleProp("height", "100px").
+				StyleProp("display", "inline-block"),
 			d.child,
 		)
 }

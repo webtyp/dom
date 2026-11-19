@@ -45,13 +45,13 @@
         <!-- Label background -->
         <rect x="0" y="0" width="64" height="20" fill="#6c757d"/>
         <!-- Value background -->
-        <rect x="64" y="0" width="45" height="20" fill="#fe7d37"/>
+        <rect x="64" y="0" width="45" height="20" fill="#dfb317"/>
         <!-- Label text -->
         <text x="32" y="14" 
               text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">Coverage</text>
         <!-- Value text -->
         <text x="86" y="14" 
-              text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">59.0%</text>
+              text-anchor="middle" font-family="sans-serif" font-size="11" fill="white">62.2%</text>
     </g>
     <!-- Badge: Race -->
     <g transform="translate(397, 0)">
