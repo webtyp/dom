@@ -77,7 +77,11 @@ func (c *StateFuncComp) Render() *Element {
 	return NewElement("div").ID(c.GetID()).
 		Child(NewElement("span").ID("sf-row").
 			BindStateFunc(fakeState{"data-current", "true"},
-				func() bool { return c.a.Get() && c.b.Get() }))
+				func() bool {
+					a := c.a.Get()
+					b := c.b.Get()
+					return a && b
+				}))
 }
 
 func TestBindStateFunc_ComputedWritesValue(t *testing.T) {
@@ -100,5 +104,16 @@ func TestBindStateFunc_ComputedWritesValue(t *testing.T) {
 
 	if got := row.GetAttr("data-current"); got != "true" {
 		t.Errorf("after Set(true): data-current want \"true\", got %q", got)
+	}
+
+	// Re-evaluating to the same boolean value must remain stable (and skip
+	// redundant attribute writes in the WASM bridge).
+	comp.b.Set(false)
+	if got := row.GetAttr("data-current"); got != "<null>" {
+		t.Errorf("after b=false: data-current want absent, got %q", got)
+	}
+	comp.a.Set(false)
+	if got := row.GetAttr("data-current"); got != "<null>" {
+		t.Errorf("after a=false (still false): data-current want absent, got %q", got)
 	}
 }

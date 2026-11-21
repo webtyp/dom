@@ -988,6 +988,9 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 				}
 			}
 		case "attrbool":
+			hasPrev := false
+			prev := false
+			prop, isFormProp := boolPropName(b.name)
 			updater = func() {
 				on := false
 				if b.signal != nil {
@@ -997,10 +1000,17 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 				} else if b.fnBool != nil {
 					on = b.fnBool()
 				}
-				if on {
-					ref.SetAttr(b.name, "")
-				} else {
-					ref.RemoveAttr(b.name)
+				if !isFormProp && hasPrev && on == prev {
+					return
+				}
+				if !hasPrev || on != prev {
+					hasPrev = true
+					prev = on
+					if on {
+						ref.SetAttr(b.name, "")
+					} else {
+						ref.RemoveAttr(b.name)
+					}
 				}
 				// Boolean form attributes (checked, disabled, selected, ...) have a live
 				// IDL property that does NOT follow the content attribute once the user has
@@ -1009,7 +1019,7 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 				// attribute is removed, so the next user click toggles property→false and the
 				// "change" event reports the wrong state (requiring a second click). Keep the
 				// property in sync explicitly.
-				if prop, ok := boolPropName(b.name); ok {
+				if isFormProp {
 					ref.(*elementWasm).val.Set(prop, on)
 				}
 				if d.devMode {
@@ -1017,6 +1027,8 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 				}
 			}
 		case "state":
+			hasPrev := false
+			prev := false
 			updater = func() {
 				on := false
 				if b.signal != nil {
@@ -1026,6 +1038,11 @@ func (d *domWasm) wireElementBindings(el *Element, ownerID string) {
 				} else if b.fnBool != nil {
 					on = b.fnBool()
 				}
+				if hasPrev && on == prev {
+					return
+				}
+				hasPrev = true
+				prev = on
 				if on {
 					ref.SetAttr(b.state.Key(), b.state.Value())
 				} else {
@@ -1299,12 +1316,13 @@ func (d *domWasm) reconcileChildren(parentID string, newNodes []*Element) {
 // Show mounts the subtree returned by build only when cond is true,
 // and unmounts it from the DOM when false.
 // The builder function is invoked lazily on demand.
+// The container is a <slot>: outside a shadow tree it is display: contents, so it adds no box and no gap.
 func Show(cond *SignalBool, build func() *Element) *Element {
 	nodes := NewNodes()
 	if cond.Get() {
 		nodes.Set([]*Element{build()})
 	}
-	container := NewElement("div").BindChildren(nodes)
+	container := NewElement("slot").BindChildren(nodes)
 
 	updater := func() {
 		if cond.Get() {

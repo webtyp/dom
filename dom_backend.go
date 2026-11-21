@@ -39,8 +39,9 @@ func (d *domBackend) OnUserActivity(handler func()) {}
 
 // Show mounts the subtree returned by build only when cond is true.
 // When false, the builder is not invoked and the container is empty.
+// The container is a <slot>: outside a shadow tree it is display: contents, so it adds no box and no gap.
 func Show(cond *SignalBool, build func() *Element) *Element {
-	container := NewElement("div")
+	container := NewElement("slot")
 	if cond.Get() {
 		container.Child(build())
 	}
